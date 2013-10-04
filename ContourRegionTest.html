@@ -1,0 +1,611 @@
+<html>
+<head>
+   <title>Contour Region Tests</title>
+   <script src="js/ContourRegion.js" type="text/javascript"></script>
+   <script src="js/ContourRegionTestData.js" type="text/javascript"></script>
+   
+   <style type="text/css">
+        
+        .testimg{
+        width: 40%;
+        height:90%;
+        float: left;
+        }
+        
+       .canvas{
+        width: 40%;
+        height:90%;
+        float: left;
+        	
+        }
+        .canvastest{
+        width: 10%;
+        height:10%;
+        float: left;
+        	
+        }
+    </style>
+    
+</head>
+    
+    
+    <body>
+
+	
+	    <p><h3>Contour Region Tests</h3></p>
+	     <div id="canvastestdiv" class="canvastest"></div>
+	    <div id="imgdiv" class="testimg">
+            <img id="shapes" src="shapes.PNG" alt="test shapes image"/>
+        </div>
+        
+        <div id="canvasdiv" class="canvas"></div>
+        
+       
+        
+        
+        <script type="text/javascript">
+        
+        var canvas = document.createElement("canvas") ;
+        var canvasDiv = document.getElementById("canvasdiv") ;
+        var imgDiv =  document.getElementById("imgdiv") ;
+        
+        canvasDiv.appendChild(canvas) ;
+        
+        var shpimg = document.getElementById("shapes") ;
+       // shpimg.width = 837 //  imgDiv.clientWidth ;
+        // shpimg.height = 575 //  imgDiv.clientHeight ;
+        
+        
+         canvas.width = 837  ; //  imgDiv.clientWidth ;
+         canvas.height = 575  ;// imgDiv.clientHeight ;
+        
+        shpimg.onload = function()
+        {
+             var ctx=canvas.getContext("2d");
+              ctx.drawImage(shpimg, 0,0) ;
+             greyscale(canvas, 0 , 0, canvas.width, canvas.height) ;
+             var hist = getGreyscaleHistogram(canvas, 0 , 0, canvas.width, canvas.height) ;
+             var thresholdMax = entropySplit(hist) ;
+         //    threshold(canvas, 0 , 0, canvas.width, canvas.height, thresholdMax) ;
+             invert(canvas, 0 , 0, canvas.width, canvas.height) ;
+             blackPercentThreshold(canvas, 0 , 0, canvas.width, canvas.height, 0.75) ;
+             var contourTracer = new ContourTracer(canvas) ;
+             contourTracer.findAllContours() ;
+             contourTracer.collectRegions()
+             var regions = contourTracer.getBinaryRegions() ;
+             
+        if (regions == null )
+         {
+                console.log("<collectRegions> did not find any regions") ;
+         }
+         else
+         {
+                 console.log("<collectRegions> found "  + regions.length + " regions") ;
+             
+                ctx.strokeStyle = "white";
+                
+                for( i = 0 ; i < regions.length ; i++)
+                {
+                    var bbox = regions[i].getBoundingBox() ;
+                    ctx.beginPath();
+                    ctx.moveTo(bbox.left -1, bbox.top -1) ;
+                    ctx.lineTo(bbox.left -1 , bbox.top + bbox.height + 1) ;
+                    ctx.lineTo(bbox.left + bbox.width + 1, bbox.top  + 1 + bbox.height) ;
+                    ctx.lineTo(bbox.left + bbox.width + 1 , bbox.top -1 ) ;
+                    ctx.lineTo(bbox.left -1 ,  bbox.top - 1 ) ;
+                    ctx.stroke();
+                    
+                   // var tmpCanvas = document.createElement("canvas") ;
+                //    var tmpCtx = tmpCanvas.getContext("2d") ;
+                  //  tmpCtx.
+                    
+                    var m00 = moment(canvas, bbox.left, bbox.top, bbox.width, bbox.height, 0, 0); // region area
+                    var xCtr = moment(canvas,bbox.left, bbox.top, bbox.width, bbox.height, 1, 0) / m00;
+                    var yCtr = moment(canvas,bbox.left, bbox.top, bbox.width, bbox.height, 0, 1) / m00;
+                    var angle = orientation(canvas,bbox.left, bbox.top, bbox.width, bbox.height ) ;
+                      var degrees = angle * 180 / Math.PI ;
+                    
+                     var u20 =  centralMoment(canvas, bbox.left, bbox.top, bbox.width, bbox.height, 2, 0); 
+                         var u02 =  centralMoment(canvas, bbox.left, bbox.top, bbox.width, bbox.height, 0, 2); 
+                         var u11 =  centralMoment(canvas, bbox.left, bbox.top, bbox.width, bbox.height, 1, 1); 
+                         var sqDiff2 = Math.pow((u20-u02), 2) ;
+                         var sum2 = u20 + u02 ;
+                         var sq4u11 = Math.pow(u11, 2) * 4 ;
+                         
+                         var eccentricity = (sum2 + Math.sqrt(sqDiff2 + sq4u11)) / (sum2 - Math.sqrt(sqDiff2 + sq4u11)) ;
+                    
+                     ctx.beginPath();
+                     ctx.arc( bbox.left + xCtr, bbox.top + yCtr, 3, 0, 2 * Math.PI, false);
+                     ctx.fillStyle = 'red';
+                     ctx.fill();
+                     ctx.stroke();
+                    
+                }
+         }
+            
+           
+        };
+     
+       
+       
+       
+       
+        
+        // unit tests
+       
+       
+    
+        
+        var testData = new ContourRegionTestData() ;
+    
+        
+        // create a 20x20 canvas to draw test contours onto
+        var testcanvas = document.createElement("canvas") ;
+        var testcanvasDiv = document.getElementById("canvastestdiv")  ;
+        testcanvasDiv.class = "canvastest" ;
+        testcanvas.width = 20 ;
+        testcanvas.height = 20 ;
+        testcanvasDiv.appendChild(testcanvas) ;
+        
+        
+        var testctx=testcanvas.getContext("2d");
+        testctx.fillStyle = "black" ; // black out background pixels before drawing any foreground pixels
+        testctx.fillRect(0,0, testcanvas.width, testcanvas.height) ;
+        var pdata = testctx.getImageData(0,0,20,20) ; 
+        
+        // single pixel test:  pixel (10,1) is set
+        pdata = testData.isolatedPixelTest(pdata) ;
+        testctx.putImageData(pdata, 0,0) ;
+      
+        
+      // create a contourTracer object using 20*20 test canvas  
+        var contourTracer = new ContourTracer(testcanvas);
+        
+     // test findNextPt starting at 10,1 - should find isolated pixel and leave startPoint unchanged    
+        var startPoint = new Point(10, 1) ;
+        
+       var dNext = contourTracer.findNextPoint(startPoint  , 0) ;
+        
+        if(startPoint.x == 10 && startPoint.y == 1 && startPoint.toCanvasDataPoint(testcanvas) == 120)
+        {
+            
+            console.log("test case <findNextPoint> Isolated Point PASS") ;
+            
+        }
+        else
+        {
+            console.log("test case <findNextPoint> FAIL: for isolated point findNextPoint should not alter input point or input direction") ;
+    
+        }
+        
+        
+        pdata = testData.twoPixelLineTest(pdata) ;
+        testctx.putImageData(pdata, 0,0) ;
+        
+        var contourTracer = new ContourTracer(testcanvas, "test") ;
+        startPoint = new Point(10, 1) ;
+    
+        var dNext = contourTracer.findNextPoint(startPoint  , 0) ;
+     
+        if(startPoint.x == 11 && startPoint.y == 1 && startPoint.toCanvasDataPoint(testcanvas) == 124 )
+        {
+            
+            console.log("test CASE <findNextPoint> Two Point Line  PASS:") ;
+            
+        }
+        else
+        {
+            console.log("test case <findNextPoint> Two Point Line FAIL") ;
+        }
+        
+        pdata = testData.threePixelLineTickDown(pdata) ;
+        testctx.putImageData(pdata, 0,0) ;
+        startPoint = new Point(10, 1) ; // reset start point
+        contourTracer = new ContourTracer(testcanvas, "test") ;
+        dNext = contourTracer.findNextPoint(startPoint  , 0) ; // find 11,1
+        dSearch = (dNext + 6) % 8;  
+        dNext = contourTracer.findNextPoint(startPoint  , dSearch) ; // find 12,1
+        dSearch = (dNext + 6) % 8;  
+        dNext = contourTracer.findNextPoint(startPoint  , dSearch) ; // find 12,2
+    
+        
+        if(startPoint.x == 12 && startPoint.y == 2 && startPoint.toCanvasDataPoint(testcanvas) == 208 )
+        {
+            
+            console.log("test CASE <findNextPoint> Three Pix Line Down tick Move Down PASS:") ;
+            
+        }
+        else
+        {
+            console.log("test case <findNextPoint> Three Pix Line Down tick Move Down  FAIL") ;
+        }
+        
+        
+        
+        pdata = testData.SixPixelShapeWithUTurn(pdata) ;
+        testctx.putImageData(pdata, 0,0) ;
+        startPoint = new Point(10, 1) ;
+        contourTracer = new ContourTracer(testcanvas, "test") ;
+        dNext = contourTracer.findNextPoint(startPoint  , 0) ; // find 11,1
+        dSearch = (dNext + 6) % 8;  
+        dNext = contourTracer.findNextPoint(startPoint  , dSearch) ; // 12,1
+        dSearch = (dNext + 6) % 8;  
+        dNext = contourTracer.findNextPoint(startPoint  , dSearch) ; // 12,2
+        dSearch = (dNext + 6) % 8;  
+        dNext = contourTracer.findNextPoint(startPoint  , dSearch) ; // 12,3
+        dSearch = (dNext + 6) % 8;  
+        dNext = contourTracer.findNextPoint(startPoint  , dSearch) ; // 11,3
+    
+    
+        if(startPoint.x == 11 && startPoint.y == 3 && startPoint.toCanvasDataPoint(testcanvas) == 284 )
+        {
+            
+            console.log("test CASE <findNextPoint> U-Turn Shape PASS:") ;
+            
+        }
+        else
+        {
+            console.log("test case <findNextPoint> U-Turn Shape  FAIL") ;
+        }
+    
+        
+        pdata = testData.completedRectangleContour(pdata) ;
+        testctx.putImageData(pdata, 0,0) ;
+        startPoint = new Point(10, 1) ;
+        contourTracer = new ContourTracer(testcanvas, "test") ;
+        dNext = contourTracer.findNextPoint(startPoint  , 0) ; // find 11,1
+        dSearch = (dNext + 6) % 8;  
+        dNext = contourTracer.findNextPoint(startPoint  , dSearch) ; // 12,1
+        dSearch = (dNext + 6) % 8;  
+        dNext = contourTracer.findNextPoint(startPoint  , dSearch) ; // 12,2
+        dSearch = (dNext + 6) % 8;  
+        dNext = contourTracer.findNextPoint(startPoint  , dSearch) ; // 12,3
+        dSearch = (dNext + 6) % 8;  
+        dNext = contourTracer.findNextPoint(startPoint  , dSearch) ; // 11,3
+        dSearch = (dNext + 6) % 8;  
+        dNext = contourTracer.findNextPoint(startPoint  , dSearch) ; // 10,3
+        dSearch = (dNext + 6) % 8;  
+        dNext = contourTracer.findNextPoint(startPoint  , dSearch) ; // 10,2
+        dSearch = (dNext + 6) % 8;  
+        dNext = contourTracer.findNextPoint(startPoint  , dSearch) ; // 10,2
+
+
+        if(startPoint.x == 10 && startPoint.y == 1 && startPoint.toCanvasDataPoint(testcanvas) == 120 )
+        {
+            
+            console.log("test <findNextPoint> Completed Rectangle Contour PASS:") ;
+            
+        }
+        else
+        {
+            console.log("test <findNextPoint> Completed Rectangle Contour FAIL") ;
+        }
+        
+    
+        pdata = testData.completedIrregularRectangleContour(pdata) ;
+        testctx.putImageData(pdata, 0,0) ;
+        startPoint = new Point(10, 1) ;
+        contourTracer = new ContourTracer(testcanvas, "test") ;
+        dNext = contourTracer.findNextPoint(startPoint  , 0) ; // find 11,1
+        dSearch = (dNext + 6) % 8;  
+        dNext = contourTracer.findNextPoint(startPoint  , dSearch) ; // 12,1
+        dSearch = (dNext + 6) % 8;  
+        dNext = contourTracer.findNextPoint(startPoint  , dSearch) ; // 12,2
+        dSearch = (dNext + 6) % 8;  
+        dNext = contourTracer.findNextPoint(startPoint  , dSearch) ; // 12,3
+        dSearch = (dNext + 6) % 8;  
+        dNext = contourTracer.findNextPoint(startPoint  , dSearch) ; // 11,3
+        dSearch = (dNext + 6) % 8;  
+        dNext = contourTracer.findNextPoint(startPoint  , dSearch) ; // 10,3
+        dSearch = (dNext + 6) % 8;  
+        dNext = contourTracer.findNextPoint(startPoint  , dSearch) ; // 9,3
+        
+        
+        if(startPoint.x == 9 && startPoint.y == 3  && startPoint.toCanvasDataPoint(testcanvas) == 276 )
+        {
+            console.log("test CASE <findNextPoint> irregular contour reached 9,3 PASS:") ;
+        }
+        else
+        {
+            console.log("test case <findNextPoint> irregular contour reached 9,3 FAIL") ;
+        }
+    
+        dSearch = (dNext + 6) % 8;  
+        dNext = contourTracer.findNextPoint(startPoint  , dSearch) ; // 10.2
+        dSearch = (dNext + 6) % 8;  
+        dNext = contourTracer.findNextPoint(startPoint  , dSearch) ; // 10,1
+        
+    
+        if(startPoint.x == 10 && startPoint.y == 1 && startPoint.toCanvasDataPoint(testcanvas) == 120 )
+        {
+            
+            console.log("test CASE <findNextPoint> Irregular Contour Back to Start PASS:") ;
+            
+        }
+        else
+        {
+            console.log("test case <findNextPoint> Irregular Contour Back to Start FAIL") ;
+        }
+
+    
+        
+        pdata = testData.IrregularRectangleBacktrackingContour(pdata) ;
+        testctx.putImageData(pdata, 0,0) ;
+        
+        startPoint = new Point(10, 1) ;
+        contourTracer = new ContourTracer(testcanvas, "test") ;
+        dNext = contourTracer.findNextPoint(startPoint  , 0) ; // find 11,1
+        dSearch = (dNext + 6) % 8;  
+        dNext = contourTracer.findNextPoint(startPoint  , dSearch) ; // 12,1
+        dSearch = (dNext + 6) % 8;  
+        dNext = contourTracer.findNextPoint(startPoint  , dSearch) ; // 12,2
+        dSearch = (dNext + 6) % 8;  
+        dNext = contourTracer.findNextPoint(startPoint  , dSearch) ; // 12,3
+        dSearch = (dNext + 6) % 8;  
+        dNext = contourTracer.findNextPoint(startPoint  , dSearch) ; // 11,3
+        dSearch = (dNext + 6) % 8;  
+        dNext = contourTracer.findNextPoint(startPoint  , dSearch) ; // 10,3
+        dSearch = (dNext + 6) % 8;  
+        dNext = contourTracer.findNextPoint(startPoint  , dSearch) ; // 9,3
+        dSearch = (dNext + 6) % 8;  
+        dNext = contourTracer.findNextPoint(startPoint  , dSearch) ; // 8,2
+        dSearch = (dNext + 6) % 8;  
+        dNext = contourTracer.findNextPoint(startPoint  , dSearch) ; // 7,2
+        
+        if(startPoint.x == 7 && startPoint.y == 2 && startPoint.toCanvasDataPoint(testcanvas) == 188 )
+        {
+            
+            console.log("test CASE <findNextPoint> Backtrack Contour reached outlying point PASS:") ;
+            
+        }
+        else
+        {
+            console.log("test case <findNextPoint> Backtrack Contour reached outlying point FAIL") ;
+        }
+
+        dSearch = (dNext + 6) % 8;  
+        dNext = contourTracer.findNextPoint(startPoint  , dSearch) ; // 8,2
+        
+        if(startPoint.x == 8 && startPoint.y == 2 && startPoint.toCanvasDataPoint(testcanvas) == 192 )
+        {
+            
+            console.log("test CASE <findNextPoint> Backtrack Contour first backtrack PASS:") ;
+            
+        }
+        else
+        {
+            console.log("test case <findNextPoint> Backtrack Contour first backtrack FAIL") ;
+        }
+        
+        dSearch = (dNext + 6) % 8;  
+        dNext = contourTracer.findNextPoint(startPoint  , dSearch) ; // 9,3
+        dSearch = (dNext + 6) % 8;  
+        dNext = contourTracer.findNextPoint(startPoint  , dSearch) ; // 10,2
+        dSearch = (dNext + 6) % 8;  
+        dNext = contourTracer.findNextPoint(startPoint  , dSearch) ; // 10,1
+        
+         
+        if(startPoint.x == 10 && startPoint.y == 1 && startPoint.toCanvasDataPoint(testcanvas) == 120 )
+        {
+            
+            console.log("test CASE <findNextPoint> Backtrack Contour back to start PASS:") ;
+            
+        }
+        else
+        {
+            console.log("test case <findNextPoint> Backtrack Contour back to start FAIL") ;
+        } 
+            
+            
+       
+         // trace one contour starting at ( 10,1) in direction 1
+         pdata = testData.IrregularRectangleBacktrackingContour(pdata) ; 
+         testctx.putImageData(pdata, 0,0) ;
+        
+         var cont = contourTracer.traceOuterContour(10, 1, 1) ;
+         
+         if(cont !== null &&  cont.points !== null && cont.points.length == 13)
+         {
+             console.log("test CASE <traceOuterContour> found 13 points PASS:") ;
+             
+            for (var i = 0 ; i < cont.points.length; i++)
+            {
+                var p = cont.points[i] ;
+                console.log("trace contour point " + i + "   x:" + p.x  + " y:" + p.y) ;
+            }
+            
+         }
+         else
+         {
+            
+            if(cont === null) 
+            {
+                
+                console.log("test CASE <traceOuterContour> returned null contour FAIL" ) ;
+            }
+            else if(cont.points === null  )
+            {
+                
+                console.log("test CASE <traceOuterContour> found no points FAIL " ) ;
+            }
+            else
+            {
+              console.log("test CASE <traceOuterContour> found " + cont.points.length + " points but expected 11 FAIL") ;
+              for (var i = 0 ; i < cont.points.length; i++)
+              {
+                 var p = cont.points[i] ;
+                 console.log("trace contour point " + i + "   x:" + p.x  + " y:" + p.y) ;
+              }
+            }
+         }
+        
+    
+        
+         // set up two separate contours on test canvas 
+         pdata = testData.IrregularRectangleBacktrackingContour(pdata) ;
+         pdata = testData.SmallUShapeContour(pdata) ;
+         testctx.putImageData(pdata, 0,0) ;
+         
+         // trace the second contour starting at 14, 1 
+         contourTracer = new ContourTracer(testcanvas, "test") ; 
+         var cont = contourTracer.traceOuterContour(14, 1, 1) ;
+         
+         if(cont !== null &&  cont.points !== null && cont.points.length == 7)
+         {
+             console.log("test CASE  <traceOuterContour> found 7 points PASS:") ;
+             
+            for (var i = 0 ; i < cont.points.length; i++)
+            {
+                var p = cont.points[i] ;
+                console.log("trace contour point " + i + "   x:" + p.x  + " y:" + p.y) ;
+            }
+            
+         }
+         else
+         {
+            
+            if(cont === null) 
+            {
+                
+                console.log("test CASE <traceOuterContour> returned null contour FAIL" ) ;
+            }
+            else if(cont.points === null  )
+            {
+                
+                console.log("test CASE <traceOuterContour> found no points FAIL " ) ;
+            }
+            else
+            {
+              console.log("test CASE <traceOuterContour> found " + cont.points.length + " points but expected 7 FAIL") ;
+             // for (var i = 0 ; i < cont.points.length; i++)
+            //  {
+             //    var p = cont.points[i] ;
+             //    console.log("trace contour point " + i + "   x:" + p.x  + " y:" + p.y) ;
+             // }     
+            }
+         }
+         
+        
+    
+    // reset test canvas
+        var testcanvas = document.createElement("canvas") ;
+        var testcanvasDiv = document.getElementById("canvastestdiv")  ;
+        testcanvasDiv.class = "canvastest" ;
+        testcanvas.width = 20 ;
+        testcanvas.height = 20 ;
+        testcanvasDiv.appendChild(testcanvas) ;
+        var testctx=testcanvas.getContext("2d");
+        testctx.fillStyle = "black" ;
+        testctx.fillRect(0,0, testcanvas.width, testcanvas.height) ;
+        var pdata = testctx.getImageData(0,0,20,20) ;
+        
+        // set up three separate regionss on test canvas including one with inner contour 
+         pdata = testData.IrregularRectangleBacktrackingContour(pdata) ;
+         pdata = testData.SmallUShapeContour(pdata) ;
+         pdata = testData.RegionWithInnerContour(pdata) ;
+         testctx.putImageData(pdata, 0,0) ;
+         
+         contourTracer = new ContourTracer(testcanvas, "test") ; 
+         
+         var contours = contourTracer.findAllContours() ;
+         var outerContours = contourTracer.getOuterContours() ;
+         var innerContours = contourTracer.getOuterContours() ;
+         
+         
+         if (innerContours == null )
+         {
+             
+                console.log("test CASE <RegionWithInnerContour> findAllContours did not find any inner contours FAIL") ;
+         }
+         else if (innerContours.length !== 2 )
+         {
+                console.log("test CASE  <RegionWithInnerContour> found " + innerContours.length + " inner contours but 2 expected FAIL") ;
+         }
+         else
+         {
+                console.log("test CASE <RegionWithInnerContour> found " + innerContours.length + " inner contours PASS") ;
+                
+                for (var j = 0 ; j < innerContours.length ; j++)
+                {
+                     cont = innerContours[j] ;
+                
+                   // for (var i = 0 ; i < cont.points.length; i++)
+                //    {
+                 //       var p = cont.points[i] ;
+                  //      console.log("trace contour region " + cont.label + " point " + i + "   x:" + p.x  + " y:" + p.y) ;
+            //        }
+                    
+                    console.log("") ;
+                    
+                }
+         }
+         
+         
+         if (outerContours == null )
+         {
+             
+                console.log("test CASE <RegionWithInnerContour> did not find any outer contours FAIL") ;
+         }
+         else if (outerContours.length !== 3 )
+         {
+                console.log("test CASE <RegionWithInnerContour> found " + outerContours.length + " outer contours but 3 expected FAIL") ;
+         }
+         else
+         {
+                console.log("test CASE <RegionWithInnerContour> found " + outerContours.length + " outer contours PASS") ;
+                     
+                for (var j = 0 ; j < outerContours.length ; j++)
+                {
+                     cont = outerContours[j] ;
+                
+                 //   for (var i = 0 ; i < cont.points.length; i++)
+                 //   {
+                 //       var p = cont.points[i] ;
+                 //       console.log("trace contour region " + cont.label + " point " + i + "   x:" + p.x  + " y:" + p.y) ;
+                 //   }
+                    
+                   // console.log("") ;
+                    
+                } 
+             
+         }
+         
+         
+        contourTracer.collectRegions()
+        var regions = contourTracer.getBinaryRegions(0)
+        if (regions == null )
+         {
+                console.log("test CASE <collectRegions> did not find any regions FAIL") ;
+         }
+         else if(regions.length != 3)
+         {
+                console.log("test CASE <collectRegions> found "  + regions.length + "regions but expected 3 FAIL") ;
+             
+         }
+         else
+         {
+                 console.log("test CASE <collectRegions> found "  + regions.length + " regions PASS") ;
+             
+                testctx.fillStyle = "green" ;
+                testctx.strokeStyle = "green";
+                
+                for( i = 0 ; i < regions.length ; i++)
+                {
+                    var bbox = regions[i].getBoundingBox() ;
+                    testctx.beginPath();
+                    testctx.moveTo(bbox.left -1, bbox.top -1) ;
+                    testctx.lineTo(bbox.left -1 , bbox.top + bbox.height + 1) ;
+                    testctx.lineTo(bbox.left + bbox.width + 1, bbox.top  + 1 + bbox.height) ;
+                    testctx.lineTo(bbox.left + bbox.width + 1 , bbox.top -1 ) ;
+                    testctx.lineTo(bbox.left -1 ,  bbox.top - 1 ) ;
+                    testctx.stroke();
+                    
+                 
+                    
+                }
+         }
+      
+        </script>
+                 
+    </body>
+</html>
