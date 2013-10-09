@@ -52,6 +52,13 @@
             margin:2px;
         	
         }
+        
+         div.controlpanel{
+        width: 10%;
+        height:10%;
+        float: left;
+        	
+        }
     
         div.inspectionlens {
             cursor:move;
@@ -94,10 +101,102 @@
     </canvas>
 </div>        
     
+ <div id="controlpanel" class="controlpanel">
+            <br/>
+            <label for="maxThreshold">Max Threshold</label>
+            <input id="maxThreshold" type="range" name="maxThreshold" step="1" min="0" max="255" value="200" onchange="thresholdSlider('maxThresholdTxt', this.value)"/>
+            <input id="maxThresholdTxt" type="text" value="200" disabled/> 
+            
+            <label for="minRoundness">Min Roundness</label>
+            <input id="minRoundness" type="range" name="minRoundness" step="0.05" min="0" max="1" value="0" onchange="changeSlider('minRoundTxt', this.value)"/>          
+            <input id="minRoundTxt" type="text" value="0.0" disabled/> 
+            <label for="maxRoundness">Max Roundness</label>
+            <input id="maxRoundness" type="range" name="maxRoundness" step="0.05" min="0" max="1" value="0.7" onchange="changeSlider('maxRoundTxt', this.value)"/>          
+            <input id="maxRoundTxt" type="text" value="0.7" disabled/>
+          
+            <label for="minRegionSize">Min Region Size</label>
+            <input id="minRegionSize" type="range" name="minRegionSize" step="5" min="0" max="2000" value="25" onchange="changeSlider('minRegionTxt', this.value)"/>          
+            <input id="minRegionTxt" type="text" value="25" disabled/>
+            <label for="maxRegionSize">Max Region Size</label>
+            <input id="maxRegionSize" type="range" name="maxRegionSize" step="5" min="0" max="2000" value="550" onchange="changeSlider('maxRegionTxt', this.value)"/>          
+            <input id="maxRegionTxt" type="text" value="550" disabled/>
+            
+            <label for="minEccentricity">min Eccentricity</label>      
+            <input id="minEccentricity" type="range" name="minEccentricity" step="0.5" min="0" max="50" value="4.5" onchange="changeSlider('minEccentricityTxt', this.value)"/>          
+            <input id="minEccentricityTxt" type="text" value="25" disabled/>
+            <label for="maxEccentricity">max Eccentricity</label>
+            <input id="maxEccentricity" type="range" name="maxEccentricity" step="0.5" min="0" max="5000" value="50" onchange="changeSlider('maxEccentricityTxt', this.value)"/>          
+            <input id="maxEccentricityTxt" type="text" value="5000" disabled/>
+            
+            
+<!--
+ var filterParams =  {"minRegionSize":25 , "maxRegionSize":550 , "minRoundness":0 , "maxRoundness":0.7, "minEccentricity":4.5, "maxEccentricity":50 } ;
+ -->
+         </div>
 
    <div class="inspectionlens" id="inspectionlens"></div>
 
 <script type="text/javascript">
+
+// var minRoundness = 0.0 ;
+// var maxRoundness = 0.7 ;
+
+var changeSlider = function(eleStr, newval)
+{
+
+    var txtEle = document.getElementById(eleStr) ;
+    txtEle.value = newval ;
+    
+    
+}
+
+
+var thresholdSlider = function(eleStr, newval)
+{
+
+    var txtEle = document.getElementById(eleStr) ;
+    txtEle.value = newval ;
+    
+        var inspectCanvas = document.getElementById("inspectcanvas") ;
+        var inspectCtx = inspectCanvas.getContext("2d") ;
+     
+       
+       
+        var lens = document.getElementById("inspectionlens") ;
+        var mapCanvas = document.getElementById("mapcvs") ;
+        
+        
+        $thresholdMax = newval
+        
+        
+         var inspcanvs = new InspectCanvas(inspectCanvas ) ;
+      inspcanvs.copyDataFromLens(lens, mapCanvas) ;
+       inspcanvs.greyscale() ;
+         
+       var hist = inspcanvs.getGreyscaleHistogram() ;
+      
+       inspcanvs.threshold($thresholdMax) ;
+     
+       inspcanvs.invert() ;
+       
+      
+       var contourTracer = new ContourTracer(inspectCanvas) ;
+        contourTracer.findAllContours() ;
+        contourTracer.collectRegions() ;
+        var regions =  contourTracer.getBinaryRegions() ;
+        
+         var minRoundness = document.getElementById("minRoundness").value ;
+        var maxRoundness = document.getElementById("maxRoundness").value ;
+        var minRegionSize = document.getElementById("minRegionSize").value ;
+        var maxRegionSize = document.getElementById("maxRegionSize").value ;
+        var minEccentricity = document.getElementById("minEccentricity").value ;
+        var maxEccentricity = document.getElementById("maxEccentricity").value ;
+        
+        var filterParams =  {"minRegionSize":minRegionSize , "maxRegionSize":maxRegionSize , "minRoundness":minRoundness , "maxRoundness":maxRoundness, "minEccentricity":minEccentricity, "maxEccentricity":maxEccentricity } ;
+        // var filterParams =  {"minRegionSize":25 , "maxRegionSize":550 , "minRoundness":0 , "maxRoundness":0.7, "minEccentricity":minEccentricity, "maxEccentricity":maxEccentricity } ;
+        inspcanvs.filterRegions(regions, filterParams) ;
+    
+}
 
 // Jquery to handle dragging see http://jsfiddle.net/tovic/Jge9z/31/
 $(document).ready(function() {
@@ -132,8 +231,14 @@ $(document).ready(function() {
     $('#inspectcanvas').bind('mousewheel', function(event, delta, deltaX, deltaY) {
     
         var inspectCanvas = document.getElementById("inspectcanvas") ;
+        var inspectCtx = inspectCanvas.getContext("2d") ;
+     
+        
          var lens = document.getElementById("inspectionlens") ;
         $thresholdMax = $thresholdMax  + (5*deltaY) ;
+        
+        document.getElementById("maxThreshold").value = $thresholdMax ;
+        document.getElementById("maxThresholdTxt").value = $thresholdMax ;
         
          var inspcanvs = new InspectCanvas(inspectCanvas ) ;
        inspcanvs.copyDataFromLens(lens, $mapCanvas) ;
@@ -144,18 +249,95 @@ $(document).ready(function() {
        inspcanvs.threshold($thresholdMax) ;
      
        inspcanvs.invert() ;
+      
        
        var contourTracer = new ContourTracer(inspectCanvas) ;
         contourTracer.findAllContours() ;
         contourTracer.collectRegions() ;
         var regions =  contourTracer.getBinaryRegions() ;
-        var filterParams =  {"minRegionSize":25 , "maxRegionSize":550 , "minRoundness":0 , "maxRoundness":0.7, "minEccentricity":4.5, "maxEccentricity":50 } ;
+        
+         var minRoundness = document.getElementById("minRoundness").value ;
+        var maxRoundness = document.getElementById("maxRoundness").value ;
+        var minRegionSize = document.getElementById("minRegionSize").value ;
+        var maxRegionSize = document.getElementById("maxRegionSize").value ;
+        var minEccentricity = document.getElementById("minEccentricity").value ;
+        var maxEccentricity = document.getElementById("maxEccentricity").value ;
+        
+        var filterParams =  {"minRegionSize":minRegionSize , "maxRegionSize":maxRegionSize , "minRoundness":minRoundness , "maxRoundness":maxRoundness, "minEccentricity":minEccentricity, "maxEccentricity":maxEccentricity } ;
+        // var filterParams =  {"minRegionSize":25 , "maxRegionSize":550 , "minRoundness":0 , "maxRoundness":0.7, "minEccentricity":minEccentricity, "maxEccentricity":maxEccentricity } ;
         inspcanvs.filterRegions(regions, filterParams) ;
+        
         
     });
  
+    var drawMode = false ;
  
+    $('body').on("mousedown", "canvas.inspectcanvas", function(e) {
+     
+     drawMode = true ;
+   });
  
+    $('body').on("mouseup", "canvas.inspectcanvas", function(e) {
+     
+     drawMode = false ;
+       var inspectCanvas = document.getElementById("inspectcanvas") ;
+       
+        var inspectCtx = inspectCanvas.getContext("2d") ;
+        
+    
+    
+    /*
+       inspcdata = inspectCtx.getImageData(0,0,inspectCanvas.width, inspectCanvas.height) ;
+       
+        var d = inspcdata.data;
+            
+        for (var i=0; i<d.length; i+=4) {
+        
+            if(d[i+1] < 255 && d[i+1] > 0 )
+            {
+            if( d[i] == 255 && d[i+1] == 192 && d[i+2] == 203)
+            {
+                d[i] = 0 ;
+                d[i+1]  = 0 ;
+                d[i+2] = 0 ;
+           }
+            }           
+        }
+         inspectCtx.putImageData(inspcdata, 0, 0);
+      */
+      
+     var contourTracer = new ContourTracer(inspectCanvas) ;
+        contourTracer.findAllContours() ;
+        contourTracer.collectRegions() ;
+        var regions =  contourTracer.getBinaryRegions() ;
+        
+         var minRoundness = document.getElementById("minRoundness").value ;
+        var maxRoundness = document.getElementById("maxRoundness").value ;
+        var minRegionSize = document.getElementById("minRegionSize").value ;
+        var maxRegionSize = document.getElementById("maxRegionSize").value ;
+        var minEccentricity = document.getElementById("minEccentricity").value ;
+        var maxEccentricity = document.getElementById("maxEccentricity").value ;
+        
+        var inspcanvs = new InspectCanvas(inspectCanvas ) ;
+        var filterParams =  {"minRegionSize":minRegionSize , "maxRegionSize":maxRegionSize , "minRoundness":minRoundness , "maxRoundness":maxRoundness, "minEccentricity":minEccentricity, "maxEccentricity":maxEccentricity } ;
+        // var filterParams =  {"minRegionSize":25 , "maxRegionSize":550 , "minRoundness":0 , "maxRoundness":0.7, "minEccentricity":minEccentricity, "maxEccentricity":maxEccentricity } ;
+        inspcanvs.filterRegions(regions, filterParams) ;
+     
+     
+   });
+    
+    $('body').on("mousemove", "canvas.inspectcanvas", function(e) {
+     
+        if(drawMode)
+        {
+            
+            var inspectCanvas = document.getElementById("inspectcanvas") ;
+            var inspectCtx = inspectCanvas.getContext("2d") ;
+            inspectCtx.fillStyle = "black" ;
+            inspectCtx.fillRect(e.pageX - inspectCanvas.offsetLeft, e.pageY - inspectCanvas.offsetTop , 3,3) ;
+        }
+                 
+   });
     
     $('body').on("mousedown", "div.inspectionlens", function(e) {
         $(this).attr('unselectable', 'on').addClass('draggable');
@@ -190,7 +372,7 @@ $(document).ready(function() {
       
         var lens = document.getElementById("inspectionlens") ;
         var inspectCanvas = document.getElementById("inspectcanvas") ;
-      
+       var inspectCanvasCtx =  inspectCanvas.getContext("2d")  ;
         
         
        var inspcanvs = new InspectCanvas(inspectCanvas ) ;
@@ -200,16 +382,31 @@ $(document).ready(function() {
        var hist = inspcanvs.getGreyscaleHistogram() ;
     
        $thresholdMax = entropySplit(hist) ;
+       document.getElementById("maxThreshold").value = $thresholdMax ;
+       document.getElementById("maxThresholdTxt").value = $thresholdMax ;
+        
+     
        inspcanvs.threshold($thresholdMax) ;
      
        inspcanvs.invert() ;
        
-    
+       
+       
         var contourTracer = new ContourTracer(inspectCanvas) ;
         contourTracer.findAllContours() ;
         contourTracer.collectRegions() ;
         var regions =  contourTracer.getBinaryRegions() ;
-        var filterParams =  {"minRegionSize":25 , "maxRegionSize":550 , "minRoundness":0 , "maxRoundness":0.7, "minEccentricity":4.5, "maxEccentricity":50 } ;
+        
+        
+        var minRoundness = document.getElementById("minRoundness").value ;
+        var maxRoundness = document.getElementById("maxRoundness").value ;
+        var minRegionSize = document.getElementById("minRegionSize").value ;
+        var maxRegionSize = document.getElementById("maxRegionSize").value ;
+        var minEccentricity = document.getElementById("minEccentricity").value ;
+        var maxEccentricity = document.getElementById("maxEccentricity").value ;
+    
+        
+        var filterParams =  {"minRegionSize":minRegionSize , "maxRegionSize":maxRegionSize , "minRoundness":minRoundness , "maxRoundness":maxRoundness, "minEccentricity":minEccentricity, "maxEccentricity":maxEccentricity } ;
         inspcanvs.filterRegions(regions, filterParams) ;
 
         
@@ -227,6 +424,7 @@ var InspectCanvas = function(inspectcanvas){
     var inspectCanvas = inspectcanvas ;
     var inspectWidth = 75 ;
     inspectHeight = 75 ;
+    var filterRegions = [] ;
     
     this.copyDataFromLens = function(inspectlens, canvas) 
     {
@@ -328,7 +526,8 @@ var InspectCanvas = function(inspectcanvas){
                     if(regionSize > minRegionSize && regionSize < maxRegionSize && roundness > minRoundness && roundness < maxRoundness && eccentricity > minEccentricity &&  eccentricity < maxEccentricity )
                     {
                 
-                        inspectCanvasCtx.strokeStyle = "white"; 
+                        inspectCanvasCtx.strokeStyle =  'rgb(255,192,203)';
+                        
                         inspectCanvasCtx.beginPath();
                         inspectCanvasCtx.moveTo(bbox.left -1, bbox.top -1) ;
                         inspectCanvasCtx.lineTo(bbox.left -1 , bbox.top + bbox.height + 1) ;
@@ -346,13 +545,20 @@ var InspectCanvas = function(inspectcanvas){
                         var degrees = angle * 180 / Math.PI ;
                          
                         
-                        inspectCanvasCtx.beginPath();
+                         inspectCanvasCtx.beginPath();
                         inspectCanvasCtx.arc( bbox.left  + xCtr, bbox.top + yCtr, 3, 0, 2 * Math.PI, false);
                         inspectCanvasCtx.fillStyle = 'red';
                         inspectCanvasCtx.fill();
                         inspectCanvasCtx.stroke();
                         
-                        
+                        if(filterRegions.length == 0)
+                        {
+                            filterRegions[0] = regions[i] ;
+                        }
+                        else
+                        {
+                            filterRegions[filterRegions.length -1] = regions[i] ;
+                        }
                     }
                     
                  
