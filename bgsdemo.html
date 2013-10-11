@@ -124,7 +124,7 @@
             
             <label for="minEccentricity">min Eccentricity</label>      
             <input id="minEccentricity" type="range" name="minEccentricity" step="0.5" min="0" max="50" value="4.5" onchange="changeSlider('minEccentricityTxt', this.value)"/>          
-            <input id="minEccentricityTxt" type="text" value="25" disabled/>
+            <input id="minEccentricityTxt" type="text" value="4.5" disabled/>
             <label for="maxEccentricity">max Eccentricity</label>
             <input id="maxEccentricity" type="range" name="maxEccentricity" step="0.5" min="0" max="5000" value="50" onchange="changeSlider('maxEccentricityTxt', this.value)"/>          
             <input id="maxEccentricityTxt" type="text" value="5000" disabled/>
@@ -283,6 +283,15 @@ $(document).ready(function() {
     $('body').on("mousedown", "canvas.inspectcanvas", function(e) {
      
      drawMode = true ;
+     
+       if(inspcanvs==null){
+        
+         inspcanvs = new InspectCanvas(inspectCanvas ) ;
+       }
+        
+        inspcanvs.clearFilterRegionBbox() ; 
+      
+     
    });
  
     $('body').on("mouseup", "canvas.inspectcanvas", function(e) {
@@ -292,12 +301,7 @@ $(document).ready(function() {
        var inspectCtx = inspectCanvas.getContext("2d") ;
         
       
-      if(inspcanvs==null){
         
-         inspcanvs = new InspectCanvas(inspectCanvas ) ;
-       }
-        
-      if(inspcanvs)
       
         var contourTracer = new ContourTracer(inspectCanvas) ;
         contourTracer.findAllContours() ;
@@ -313,7 +317,6 @@ $(document).ready(function() {
      
        
         var filterParams =  {"minRegionSize":minRegionSize , "maxRegionSize":maxRegionSize , "minRoundness":minRoundness , "maxRoundness":maxRoundness, "minEccentricity":minEccentricity, "maxEccentricity":maxEccentricity } ;
-        // var filterParams =  {"minRegionSize":25 , "maxRegionSize":550 , "minRoundness":0 , "maxRoundness":0.7, "minEccentricity":minEccentricity, "maxEccentricity":maxEccentricity } ;
         inspcanvs.filterRegions(regions, filterParams) ;
      
      
@@ -441,6 +444,10 @@ var InspectCanvas = function(inspectcanvas){
         
     };
     
+    this.getFilterRegions = function(){
+      return filterRegions ;  
+    };
+    
     this.greyscale = function (){
         greyscale(inspectCanvas, 0, 0 , inspectWidth, inspectHeight) ;
     };
@@ -463,8 +470,35 @@ var InspectCanvas = function(inspectcanvas){
         
     };
     
-    //TODO    // blackPercentThreshold($inspectCanvas, 0, 0 , inspectWidth, inspectHeight, 0.8) ;
-      
+  
+     this.clearFilterRegionBbox = function()
+     {
+         if(filterRegions !== null && filterRegions.length > 0)
+         {
+             
+             
+           for(var i = 0 ; i < filterRegions.length ; i++)
+           {
+                 var inspectCanvasCtx = inspectCanvas.getContext("2d") ;    
+                inspectCanvasCtx.strokeStyle =  "rgb(0,0,0)";
+                inspectCanvasCtx.strokeWidth = 1; 
+                inspectCanvasCtx.fillStyle = "rgb(0,0,0)"; 
+                    
+                var bbox = filterRegions[i].getBoundingBox() ;            
+                inspectCanvasCtx.beginPath();
+                inspectCanvasCtx.moveTo(bbox.left -1, bbox.top -1) ;
+                inspectCanvasCtx.lineTo(bbox.left -1 , bbox.top + bbox.height + 1) ;
+                inspectCanvasCtx.lineTo(bbox.left + bbox.width + 1, bbox.top  + 1 + bbox.height) ;
+                inspectCanvasCtx.lineTo(bbox.left + bbox.width + 1 , bbox.top -1 ) ;
+                inspectCanvasCtx.lineTo(bbox.left -1 ,  bbox.top - 1 ) ;
+                inspectCanvasCtx.stroke();
+               //   inspectCanvasCtx.stroke();
+                //    inspectCanvasCtx.stroke();
+                //    inspectCanvasCtx.stroke();
+           }
+         }
+         
+     }
       
       
      this.filterRegions = function(regions, filterParams)
@@ -490,6 +524,7 @@ var InspectCanvas = function(inspectcanvas){
             }
         
              var inspectCanvasCtx = inspectCanvas.getContext("2d") ;    
+            filterRegions = [] ;
             
             for( i = 0 ; i < regions.length ; i++)
                 {
@@ -522,8 +557,9 @@ var InspectCanvas = function(inspectcanvas){
                     if(regionSize > minRegionSize && regionSize < maxRegionSize && roundness > minRoundness && roundness < maxRoundness && eccentricity > minEccentricity &&  eccentricity < maxEccentricity )
                     {
                 
-                        inspectCanvasCtx.strokeStyle =  'rgb(255,192,203)';
-                        
+                        inspectCanvasCtx.strokeStyle =  "rgb(0,255,0)";
+                        inspectCanvasCtx.strokeWidth = 1; 
+                        inspectCanvasCtx.fillStyle = "rgb(0,255,0)"; 
                         inspectCanvasCtx.beginPath();
                         inspectCanvasCtx.moveTo(bbox.left -1, bbox.top -1) ;
                         inspectCanvasCtx.lineTo(bbox.left -1 , bbox.top + bbox.height + 1) ;
@@ -531,7 +567,8 @@ var InspectCanvas = function(inspectcanvas){
                         inspectCanvasCtx.lineTo(bbox.left + bbox.width + 1 , bbox.top -1 ) ;
                         inspectCanvasCtx.lineTo(bbox.left -1 ,  bbox.top - 1 ) ;
                         inspectCanvasCtx.stroke();
-                        var rCenter = regions[i].getCenter() ;
+                     
+                     //   var rCenter = regions[i].getCenter() ;
                         
                    
                         var m00 = moment(inspectCanvas, bbox.left, bbox.top, bbox.width, bbox.height, 0, 0); // region area
@@ -542,10 +579,10 @@ var InspectCanvas = function(inspectcanvas){
                          
                         
                          inspectCanvasCtx.beginPath();
-                        inspectCanvasCtx.arc( bbox.left  + xCtr, bbox.top + yCtr, 3, 0, 2 * Math.PI, false);
-                        inspectCanvasCtx.fillStyle = 'red';
+                        inspectCanvasCtx.arc( bbox.left  + xCtr, bbox.top + yCtr, 2, 0, 2 * Math.PI, false);
+                        inspectCanvasCtx.fillStyle = 'green';
                         inspectCanvasCtx.fill();
-                        inspectCanvasCtx.stroke();
+                         inspectCanvasCtx.stroke();
                         
                         if(filterRegions.length == 0)
                         {
@@ -553,7 +590,7 @@ var InspectCanvas = function(inspectcanvas){
                         }
                         else
                         {
-                            filterRegions[filterRegions.length -1] = regions[i] ;
+                            filterRegions[filterRegions.length] = regions[i] ;
                         }
                     }
                     

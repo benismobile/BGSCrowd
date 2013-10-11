@@ -574,15 +574,15 @@ function ContourTracer(canvas, MODE){
         cont.addPoint(pt); // add first point to contour
         
         var canvasPt = pt.toCanvasDataPoint(canvas)  ;
-       ptdata.data[canvasPt+0] = 255 ;
-        ptdata.data[canvasPt+1] = 0 ;
+     //  ptdata.data[canvasPt+0] = 255 ;
+     //   ptdata.data[canvasPt+1] = 0 ;
         if(direction==0)
         {
-                ptdata.data[canvasPt+2] = 0 ;
+      //          ptdata.data[canvasPt+2] = 0 ;
         }
         else
         {
-                ptdata.data[canvasPt+2] = 255 ;
+    //            ptdata.data[canvasPt+2] = 255 ;
         }
         
         canvas.getContext("2d").putImageData(ptdata, 0,0) ;
@@ -636,16 +636,16 @@ function ContourTracer(canvas, MODE){
                 cont.addPoint(pt);
                 canvasPt = pt.toCanvasDataPoint(canvas)  ;
     
-                ptdata.data[canvasPt+0] = 255 ;
-                ptdata.data[canvasPt+1] = 0 ;
+      //          ptdata.data[canvasPt+0] = 255 ;
+    //            ptdata.data[canvasPt+1] = 0 ;
                 
                 if(direction==0)
                 {
-                    ptdata.data[canvasPt+2] = 0 ;
+      //              ptdata.data[canvasPt+2] = 0 ;
                 }
                 else
                 {
-                    ptdata.data[canvasPt+2] = 255 ;
+        //            ptdata.data[canvasPt+2] = 255 ;
                 }
                 
                 canvas.getContext("2d").putImageData(ptdata, 0,0) ;
