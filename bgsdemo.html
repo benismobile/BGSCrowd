@@ -28,7 +28,7 @@
         }
 
         div.map{
-            width: 35%;
+            width: 65%;
         height:90%;
         float: left;
         
@@ -36,7 +36,7 @@
         }
         
        div.mapcanvas{
-            width: 35%;
+            width: 65%;
         height:90%;
         float: left;
         	
@@ -104,6 +104,8 @@
     
  <div id="controlpanel" class="controlpanel">
             <br/>
+            <input id="editmode" type="button" name="hidecanvs" onclick="changeMode()" value="inspect mode"/>
+            <br/>
             <label for="maxThreshold">Max Threshold</label>
             <input id="maxThreshold" type="range" name="maxThreshold" step="1" min="0" max="255" value="200" onchange="thresholdSlider('maxThresholdTxt', this.value)"/>
             <input id="maxThresholdTxt" type="text" value="200" disabled/> 
@@ -143,6 +145,38 @@
 // var maxRoundness = 0.7 ;
 
 var inspcanvs = null ;
+var editMode = "navigate" ;
+
+var changeMode = function()
+{
+    var mapDiv = document.getElementById("map") ;
+    var mapcanvasDiv = document.getElementById("mapcanvas") ;
+    var modebtn = document.getElementById("editmode") ;
+    var inspectionlens = document.getElementById("inspectionlens") ;
+    
+    
+    
+    if(editMode == "navigate")
+    {
+        editMode = "inspect" ;
+        
+    
+        mapcanvasDiv.style.display = "block" ;
+        mapDiv.style.display = "none" ;
+        modebtn.value = "navigate mode" ;
+        inspectionlens.style.display = "block" ;
+    }
+    else
+    {
+        editMode = "navigate" ;
+        mapcanvasDiv.style.display = "none" ;
+        mapDiv.style.display = "block" ;
+        modebtn.value = "inspect mode" ;
+        inspectionlens.style.display = "none" ;
+        
+    }
+    
+}
 
 var changeSlider = function(eleStr, newval)
 {
@@ -281,8 +315,9 @@ $(document).ready(function() {
     var drawMode = false ;
  
     $('body').on("mousedown", "canvas.inspectcanvas", function(e) {
+        // TODO filter out border lines already drawn on canvastion(e) {
      
-     drawMode = true ;
+        drawMode = true ;
      
        if(inspcanvs==null){
         
@@ -412,6 +447,13 @@ $(document).ready(function() {
           
     }); // ends mouseup event
     
+    
+    
+    $('body').on("mousedown", "div.mapcanvas", function(e) {
+     
+       changeMode();
+                 
+   });
     
     
     
@@ -620,6 +662,8 @@ var InspectCanvas = function(inspectcanvas){
         {crossOriginKeyword:'annonymous'} } ) ;
    // could be worth tile options lsitener?
 
+      document.getElementById("mapcanvas").style.display = "none" ;
+      document.getElementById("inspectionlens").style.display = "none"  ;
    
      
       
@@ -632,7 +676,6 @@ var InspectCanvas = function(inspectcanvas){
                     canvasDiv = document.createElement("canvas") ;
                     canvasDiv.id = "mapcvs"
                     mapcanvasDiv = document.getElementById("mapcanvas") ;
-                    
                     mapDiv = document.getElementById("map") ;
                     
                     mapcanvasDiv.appendChild(canvasDiv) ;
@@ -640,7 +683,7 @@ var InspectCanvas = function(inspectcanvas){
                      //canvasDiv.style.width = tileImgParent.style.width ;
                      canvasDiv.width = mapDiv.clientWidth ;
                      canvasDiv.height = mapDiv.clientHeight ;
-                     
+                    
                  }
           
           
