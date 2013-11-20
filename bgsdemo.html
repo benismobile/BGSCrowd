@@ -719,11 +719,13 @@ var InspectCanvas = function(inspectcanvas){
     var inspectWidth = 75 ;
     inspectHeight = 75 ;
     var filterRegions = [] ;
+    var mapCanvas ;
+    var lens ;
     
     this.copyDataFromLens = function(inspectlens, canvas) 
     {
-        var lens = inspectlens ;
-        var mapCanvas = canvas ;
+        lens = inspectlens ;
+        mapCanvas = canvas ;
 
         inspectWidth = lens.clientWidth ;
         inspectHeight = lens.clientHeight ;
@@ -869,13 +871,34 @@ var InspectCanvas = function(inspectcanvas){
                         var yCtr = moment(inspectCanvas,bbox.left, bbox.top, bbox.width, bbox.height, 0, 1) / m00;
                         var angle = orientation(inspectCanvas,bbox.left, bbox.top, bbox.width, bbox.height ) ;
                         var degrees = angle * 180 / Math.PI ;
+        
+        
+                        var mapCanvsdPxPtX = lens.offsetLeft - mapCanvas.offsetLeft + +bbox.left + xCtr ; 
+                        var mapCanvsdPxPtY = lens.offsetTop - mapCanvas.offsetTop + bbox.top + yCtr ;
                          
+                        
                         
                          inspectCanvasCtx.beginPath();
                         inspectCanvasCtx.arc( bbox.left  + xCtr, bbox.top + yCtr, 2, 0, 2 * Math.PI, false);
                         inspectCanvasCtx.fillStyle = 'green';
                         inspectCanvasCtx.fill();
                          inspectCanvasCtx.stroke();
+                        
+                        var mapCanvasCtx = mapCanvas.getContext("2d") ;
+                        mapCanvasCtx.beginPath();
+                        mapCanvasCtx.arc( mapCanvsdPxPtX, mapCanvsdPxPtY, 2, 0, 2 * Math.PI, false);
+                        mapCanvasCtx.fillStyle = 'green';
+                        mapCanvasCtx.fill();
+                        mapCanvasCtx.stroke();
+                        var lonlat = map.getLonLatFromPixel(new OpenLayers.Pixel(mapCanvsdPxPtX, mapCanvsdPxPtY))
+                        
+                        var size = new OpenLayers.Size(21,25);
+                        var offset = new OpenLayers.Pixel(-(size.w/2), -size.h);
+                        var icon = new OpenLayers.Icon('http://www.openlayers.org/dev/img/marker.png',size,offset);
+                        var markers = map.getLayersByName("Markers") ;
+                        markers[0].addMarker(new OpenLayers.Marker(lonlat,icon));
+
+                        
                         
                         regions[i].degrees = degrees ;
                         regions[i].angle = angle ;
@@ -1031,6 +1054,9 @@ var InspectCanvas = function(inspectcanvas){
 
        
        map.addLayers([fieldtripgb, arranwms, torquaywms]);
+       var markers = new OpenLayers.Layer.Markers( "Markers" );
+       map.addLayer(markers);
+
 
        map.zoomToMaxExtent();
 

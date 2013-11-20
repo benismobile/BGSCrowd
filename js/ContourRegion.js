@@ -377,6 +377,10 @@ function BinaryRegion(id)
     var x2_sum = 0;
     var y2_sum = 0;
     this.perimeterContour = null ;
+    
+    
+    this.degrees = 0.0 ;
+    this.angle = 0.0 ;
  
  
     this.getSize = function()
