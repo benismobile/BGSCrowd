@@ -6,7 +6,8 @@
     <script src="js/jquery-1.10.2.min.js" type="text/javascript"></script>
     <script src="js/jquery.mousewheel.js" type="text/javascript"></script>
     <script src="js/ContourRegion.js" type="text/javascript"></script>
-                 
+<script type='text/javascript' charset='utf-8' src='js/popbox.min.js'></script>
+  <link rel='stylesheet' href='js/popbox.css' type='text/css'>                 
                  
              
  <style type="text/css">
@@ -67,13 +68,20 @@
             background-color:white;
             border:5px solid black;
             margin:2px;
-            opacity:0.3;
+            opacity:0.75;
             float:left ;
+        }
+        
+        div.popbox{
+            cursor:move;
+            float:left ;
+            margin:2px;
+            
         }
 
         div.draggable {
         background-color:yellow;
-        opacity:0.5;
+        opacity:0.4;
         }
 
     
@@ -83,6 +91,8 @@
         width: 15%;
     	padding: 10 10 10 10;
         }
+        
+        .box { width:350px; }
 
     </style>
 
@@ -94,17 +104,32 @@
 	
 	<p><b>BGS Dip &amp; Strike Demo</b></p>
 
+
+
+
 <div>
-    <div class="map" id="map"></div>
+  
+       
+
+    <div class="map" id="map">
+        
+      
+        
+    </div>
+    
     <div class="mapcanvas" id="mapcanvas"></div>
     <canvas class="inspectcanvas" id="inspectcanvas" width=75 height=75>
     </canvas>
 </div>        
-    
+
+
     
  <div id="controlpanel" class="controlpanel">
             <br/>
             <input id="editmode" type="button" name="hidecanvs" onclick="changeMode()" value="inspect mode"/>
+         
+            
+
             <br/>
             <label for="maxThreshold">Max Threshold</label>
             <input id="maxThreshold" type="range" name="maxThreshold" step="1" min="0" max="255" value="200" onchange="thresholdSlider('maxThresholdTxt', this.value)"/>
@@ -137,15 +162,228 @@
  -->
          </div>
 
-   <div class="inspectionlens" id="inspectionlens"></div>
+   <div class="inspectionlens" id="inspectionlens"></div> 
+    <div class='popbox' id="popbox">
+                    <a class='open' href='#' onclick="javascript:verifySymbols(0)">
+                        <img src='plus.png' style='width:14px;position:right;'>
+                    </a>
+
+                    <div class='collapse'>
+                        <div class='box'>
+                            <div class='arrow'></div>
+                                <div class='arrow-border'></div>
+
+                                    <H5> Symbol Identification </H5>
+                                    <canvas id="verifycanvas" width="75" height="75" style='border:2px solid black;;position:relative;'></canvas>
+                                    <canvas id="verifycanvas2" width="75" height="75" style='border:2px solid black;;position:relative;'></canvas>
+                                    <label for="strikeTxt">Strike</label>
+                                    <input id="strikeTxt" type="text" value="0" disabled/>
+                                     <input id="nextSymbolBtn" type="button" name="nextSymbol" onclick="nextSymbol()" value="Next Symbol"/>
+                                     <a href="#" class="close" onclick="javascript:closeVerifySymbols(0)">close</a>
+                        </div>
+                    </div>
+             </div>  
+   
+   
 
 <script type="text/javascript">
 
-// var minRoundness = 0.0 ;
-// var maxRoundness = 0.7 ;
-
 var inspcanvs = null ;
 var editMode = "navigate" ;
+var currentRegionIndex = 0 ;
+var numCurrentRegions = 0 ;
+
+var closeVerifySymbols = function() 
+{
+    
+    currentRegionIndex = 0 ;
+    var inspectionlens = document.getElementById("inspectionlens") ;
+    inspectionlens.style.opacity = 0.75 ;
+    
+}
+
+var nextSymbol = function() 
+{
+    
+    if(currentRegionIndex == (numCurrentRegions-1))
+    {
+        currentRegionIndex = 0 ;
+            verifySymbols(currentRegionIndex) ;
+    }
+    else
+    {
+        currentRegionIndex++ ;
+        verifySymbols(currentRegionIndex) ;
+    }
+    
+}
+
+var verifySymbols = function(regionIndex)
+{
+    
+    
+      var verifycanvas  = document.getElementById("verifycanvas") ;
+      var verifycanvasCtx = verifycanvas.getContext("2d") ;
+      var verifycanvas2  = document.getElementById("verifycanvas2") ;
+      var verifycanvas2Ctx = verifycanvas2.getContext("2d") ;
+
+      
+      var inspectionlens = document.getElementById("inspectionlens") ;
+      var inspectCanvas = document.getElementById("inspectcanvas") ;
+      verifycanvas.width = 125 ;
+      verifycanvas.height = 125 ;
+       verifycanvas2.width = 125 ;
+      verifycanvas2.height = 125 ;
+      
+      var xmid = Math.round( verifycanvas.width / 2) ;
+     var ymid = Math.round(verifycanvas.height / 2 ) ;
+                
+      
+      var inspectCanvasCtx = inspectCanvas.getContext("2d") ;
+    
+      var boxelearray = document.getElementsByClassName("box") ;
+      var boxele = boxelearray[0] ;
+
+      inspectionlens.style.opacity = 1 ;
+
+         
+   if(inspcanvs != null)
+   {
+       var filterRegions = inspcanvs.getFilterRegions() ;
+
+      
+            numCurrentRegions = filterRegions.length ;
+        
+        
+              // display strike (orientation)
+            var  perimeterContour = filterRegions[regionIndex].perimeterContour ;
+            var strike = filterRegions[regionIndex].degrees ;
+            var bbox = filterRegions[regionIndex].getBoundingBox() ;
+            strike = Math.abs(strike)
+            strike = Math.floor(strike) ;
+            
+          
+         
+         
+         
+           inspectCanvasCtx.strokeStyle =  "red";
+           inspectCanvasCtx.strokeWidth = 1; 
+           inspectCanvasCtx.fillStyle = "red"; 
+           inspectCanvasCtx.beginPath();
+           inspectCanvasCtx.moveTo(bbox.left -1, bbox.top -1) ;
+           inspectCanvasCtx.lineTo(bbox.left -1 , bbox.top + bbox.height + 1) ;
+           inspectCanvasCtx.lineTo(bbox.left + bbox.width + 1, bbox.top  + 1 + bbox.height) ;
+           inspectCanvasCtx.lineTo(bbox.left + bbox.width + 1 , bbox.top -1 ) ;
+           inspectCanvasCtx.lineTo(bbox.left -1 ,  bbox.top - 1 ) ;
+           inspectCanvasCtx.stroke();
+         
+         
+          // alert("left: " + bbox.left + " top: " + bbox.top + " height:" + bbox.height + " width:" + bbox.width) ;
+           
+           verifycanvasCtx.strokeStyle =  "blue";
+           verifycanvasCtx.strokeWidth = 1; 
+           verifycanvasCtx.fillStyle = "blue"; 
+           verifycanvasCtx.beginPath();
+           verifycanvasCtx.moveTo(bbox.left -1, bbox.top -1) ;
+           verifycanvasCtx.lineTo(bbox.left -1 , bbox.top + bbox.height + 1) ;
+           verifycanvasCtx.lineTo(bbox.left + bbox.width + 1, bbox.top  + 1 + bbox.height) ;
+           verifycanvasCtx.lineTo(bbox.left + bbox.width + 1 , bbox.top -1 ) ;
+           verifycanvasCtx.lineTo(bbox.left -1 ,  bbox.top - 1 ) ;
+           verifycanvasCtx.stroke();
+         
+         
+          if(perimeterContour !== null && perimeterContour.points !== null && perimeterContour.points.length > 2)
+          {    
+                var pt = perimeterContour.points[0] ;
+                    
+                verifycanvasCtx.beginPath();
+                
+                
+                
+                verifycanvasCtx.moveTo(pt.x, pt.y) ;
+               
+                
+           
+                for(var i = 1 ; i < perimeterContour.points.length ; i++)
+                {
+                        
+                          verifycanvasCtx.strokeStyle =  "black";
+                        verifycanvasCtx.strokeWidth = 1; 
+                        verifycanvasCtx.fillStyle = "black";
+                
+                        pt = perimeterContour.points[i] ;
+                        verifycanvasCtx.lineTo(pt.x, pt.y) ;
+               
+                }
+                
+                 verifycanvasCtx.stroke();
+         
+                
+                verifycanvas2Ctx.moveTo((pt.x - bbox.left)  + xmid, (pt.y - bbox.top) + ymid ) ;
+                var nextPt = pt ;
+                
+                for(var i = 0 ; i < perimeterContour.points.length - 1 ; i++)
+                {
+                
+                        verifycanvas2Ctx.strokeStyle =  "blue";
+                        verifycanvas2Ctx.strokeWidth = 3; 
+                        verifycanvas2Ctx.fillStyle = "blue";
+                        
+                
+                        pt1 = perimeterContour.points[i] ;
+                        pt2 = perimeterContour.points[i+1] ;
+                        var diffx = pt2.x - pt1.x ;
+                        var diffy = pt2.y - pt1.y ;
+                        
+                        diffx = diffx * 2 ;
+                        diffy = diffy * 2  ;
+                        
+                        nextPt.x = nextPt.x + diffx ;
+                        nextPt.y = nextPt.y + diffy ;
+                        
+                        verifycanvas2Ctx.lineTo(( nextPt.x - bbox.left)  + (xmid), (nextPt.y- bbox.top) + (ymid) )  ;
+                        
+                        if(i == perimeterContour.points.length - 3 )
+                        {
+                                 // diffx = pt.x - pt2.x ;
+                                // diffy = pt.y - pt2.y ;
+                                // diffx = diffx * 2 ;
+                                // diffy = diffy * 2  ;
+                        
+                              //   nextPt.x = nextPt.x + diffx ;
+                            //     nextPt.y = nextPt.y + diffy ;
+                              //   verifycanvas2Ctx.lineTo(( nextPt.x - bbox.left)  + (xmid), (nextPt.y- bbox.top) + (ymid) )  ;
+                                 verifycanvas2Ctx.lineTo((pt.x - bbox.left)  + xmid, (pt.y - bbox.top) + ymid ) ;
+                        }
+                }
+         
+         
+                  verifycanvas2Ctx.stroke();
+         
+         
+            var strikeEle = document.getElementById("strikeTxt") ;
+            strikeEle.value = strike ;
+           
+    
+            
+            
+             
+          }
+      
+      
+      
+         // boxele.style.display = "none" ;
+      
+        
+        // TODO  identify symbol heuristics
+       
+       
+   }
+    
+    
+}
+
+
 
 var changeMode = function()
 {
@@ -153,18 +391,20 @@ var changeMode = function()
     var mapcanvasDiv = document.getElementById("mapcanvas") ;
     var modebtn = document.getElementById("editmode") ;
     var inspectionlens = document.getElementById("inspectionlens") ;
+  
     
     
     
     if(editMode == "navigate")
     {
         editMode = "inspect" ;
-        
+         $('.popbox').show() ;
     
         mapcanvasDiv.style.display = "block" ;
         mapDiv.style.display = "none" ;
         modebtn.value = "navigate mode" ;
         inspectionlens.style.display = "block" ;
+       
     }
     else
     {
@@ -173,7 +413,8 @@ var changeMode = function()
         mapDiv.style.display = "block" ;
         modebtn.value = "inspect mode" ;
         inspectionlens.style.display = "none" ;
-        
+         $('.popbox').hide() ;
+    
     }
     
 }
@@ -245,7 +486,9 @@ $(document).ready(function() {
     var $imageData ;
     var $thresholdMax = 0 ;
     
-
+    $('.popbox').popbox();
+    $('.popbox').hide() ; 
+   
  //mousewheel increases and decrements dimensions of inspection lens 
     $('#inspectionlens').bind('mousewheel', function(event, delta, deltaX, deltaY) {
 
@@ -370,6 +613,8 @@ $(document).ready(function() {
                  
    });
     
+    
+    
     $('body').on("mousedown", "div.inspectionlens", function(e) {
         $(this).attr('unselectable', 'on').addClass('draggable');
         var el_w = $('.draggable').outerWidth(),
@@ -404,8 +649,16 @@ $(document).ready(function() {
         var lens = document.getElementById("inspectionlens") ;
         var inspectCanvas = document.getElementById("inspectcanvas") ;
        var inspectCanvasCtx =  inspectCanvas.getContext("2d")  ;
-        
-       
+    
+        var pblist = document.getElementsByClassName("popbox") ;
+        var popbox = pblist[0] ;
+        popbox.offsetLeft = lens.offsetLeft ;
+        popbox.offsetTop = lens.offsetTop ;
+         popbox.style.left = lens.style.left ;
+         popbox.style.top = lens.style.top ;
+         popbox.clientLeft = lens.clientLeft ;
+         popbox.clientTop = lens.clientTop ;
+         
         if(inspcanvs==null)
         {
            inspcanvs = new InspectCanvas(inspectCanvas ) ;
@@ -534,9 +787,7 @@ var InspectCanvas = function(inspectcanvas){
                 inspectCanvasCtx.lineTo(bbox.left + bbox.width + 1 , bbox.top -1 ) ;
                 inspectCanvasCtx.lineTo(bbox.left -1 ,  bbox.top - 1 ) ;
                 inspectCanvasCtx.stroke();
-               //   inspectCanvasCtx.stroke();
-                //    inspectCanvasCtx.stroke();
-                //    inspectCanvasCtx.stroke();
+            
            }
          }
          
@@ -625,6 +876,9 @@ var InspectCanvas = function(inspectcanvas){
                         inspectCanvasCtx.fillStyle = 'green';
                         inspectCanvasCtx.fill();
                          inspectCanvasCtx.stroke();
+                        
+                        regions[i].degrees = degrees ;
+                        regions[i].angle = angle ;
                         
                         if(filterRegions.length == 0)
                         {
