@@ -1,0 +1,1062 @@
+<html>
+<head>
+  <title>National Library of Scotland Demo</title>
+
+    <script src="js/openlayers/OpenLayers.js" type="text/javascript"></script> 
+    <script src="js/jquery-1.10.2.min.js" type="text/javascript"></script>
+    <script src="js/jquery.mousewheel.js" type="text/javascript"></script>
+    <script src="js/ContourRegion.js" type="text/javascript"></script>
+<script type='text/javascript' charset='utf-8' src='js/popbox.min.js'></script>
+  <link rel='stylesheet' href='js/popbox.css' type='text/css'>                 
+                 
+             
+ <style type="text/css">
+        
+        body {
+            font-family: sans-serif;
+        }
+        
+        p 
+        {
+            width: 95%;
+        }
+        
+        a {
+            text-decoration: none;
+            color: black;
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+
+        div.map{
+            width: 65%;
+        height:90%;
+        float: left;
+        
+
+        }
+        
+       div.mapcanvas{
+            width: 65%;
+        height:90%;
+        float: left;
+        	
+        }
+    
+        div.inspectcanvas{
+    
+           background-color:white;
+            border:5px solid black;
+            width:70px;
+            height:70px;
+            float: left;
+            margin:2px;
+        	
+        }
+        
+         div.controlpanel{
+        width: 10%;
+        height:10%;
+        float: left;
+        	
+        }
+    
+        div.inspectionlens {
+            cursor:move;
+            width:125px;
+            height:125px;
+            background-color:white;
+            border:5px solid black;
+            margin:2px;
+            opacity:0.75;
+            float:left ;
+        }
+        
+        div.popbox{
+            cursor:move;
+            float:left ;
+            margin:2px;
+            
+        }
+
+        div.draggable {
+        background-color:yellow;
+        opacity:0.4;
+        }
+
+    
+        
+        div.docs{
+        float: left;
+        width: 15%;
+    	padding: 10 10 10 10;
+        }
+        
+        .box { width:350px; }
+
+    </style>
+
+    </head>
+    
+    
+    <body>
+
+	
+	<p><b>National Library of Scotland Demo</b></p>
+
+
+
+
+<div>
+  
+       
+
+    <div class="map" id="map">
+        
+      
+        
+    </div>
+    
+    <div class="mapcanvas" id="mapcanvas"></div>
+    <canvas class="inspectcanvas" id="inspectcanvas" width=75 height=75>
+    </canvas>
+</div>        
+
+
+    
+ <div id="controlpanel" class="controlpanel">
+            <br/>
+            <input id="editmode" type="button" name="hidecanvs" onclick="changeMode()" value="inspect mode"/>
+         
+            
+
+            <br/>
+            <label for="maxThreshold">Max Threshold</label>
+            <input id="maxThreshold" type="range" name="maxThreshold" step="1" min="0" max="255" value="200" onchange="thresholdSlider('maxThresholdTxt', this.value)"/>
+            <input id="maxThresholdTxt" type="text" value="200" disabled/> 
+            
+            <label for="minRoundness">Min Roundness</label>
+            <input id="minRoundness" type="range" name="minRoundness" step="0.05" min="0" max="1" value="0" onchange="changeSlider('minRoundTxt', this.value)"/>          
+            <input id="minRoundTxt" type="text" value="0.0" disabled/> 
+            <label for="maxRoundness">Max Roundness</label>
+            <input id="maxRoundness" type="range" name="maxRoundness" step="0.05" min="0" max="1" value="0.7" onchange="changeSlider('maxRoundTxt', this.value)"/>          
+            <input id="maxRoundTxt" type="text" value="0.7" disabled/>
+          
+            <label for="minRegionSize">Min Region Size</label>
+            <input id="minRegionSize" type="range" name="minRegionSize" step="5" min="0" max="2000" value="25" onchange="changeSlider('minRegionTxt', this.value)"/>          
+            <input id="minRegionTxt" type="text" value="25" disabled/>
+            <label for="maxRegionSize">Max Region Size</label>
+            <input id="maxRegionSize" type="range" name="maxRegionSize" step="5" min="0" max="2000" value="550" onchange="changeSlider('maxRegionTxt', this.value)"/>          
+            <input id="maxRegionTxt" type="text" value="550" disabled/>
+            
+            <label for="minEccentricity">min Eccentricity</label>      
+            <input id="minEccentricity" type="range" name="minEccentricity" step="0.5" min="0" max="50" value="4.5" onchange="changeSlider('minEccentricityTxt', this.value)"/>          
+            <input id="minEccentricityTxt" type="text" value="4.5" disabled/>
+            <label for="maxEccentricity">max Eccentricity</label>
+            <input id="maxEccentricity" type="range" name="maxEccentricity" step="0.5" min="0" max="5000" value="50" onchange="changeSlider('maxEccentricityTxt', this.value)"/>          
+            <input id="maxEccentricityTxt" type="text" value="5000" disabled/>
+            
+            
+<!--
+ var filterParams =  {"minRegionSize":25 , "maxRegionSize":550 , "minRoundness":0 , "maxRoundness":0.7, "minEccentricity":4.5, "maxEccentricity":50 } ;
+ -->
+         </div>
+
+   <div class="inspectionlens" id="inspectionlens"></div> 
+    <div class='popbox' id="popbox">
+                    <a class='open' href='#' onclick="javascript:verifySymbols(0)">
+                        <img src='plus.png' style='width:14px;position:right;'>
+                    </a>
+
+                    <div class='collapse'>
+                        <div class='box'>
+                            <div class='arrow'></div>
+                                <div class='arrow-border'></div>
+
+                                    <H5> Symbol Identification </H5>
+                                    <canvas id="verifycanvas" width="75" height="75" style='border:2px solid black;;position:relative;'></canvas>
+                                    <canvas id="verifycanvas2" width="75" height="75" style='border:2px solid black;;position:relative;'></canvas>
+                                    <label for="strikeTxt">Strike</label>
+                                    <input id="strikeTxt" type="text" value="0" disabled/>
+                                     <input id="nextSymbolBtn" type="button" name="nextSymbol" onclick="nextSymbol()" value="Next Symbol"/>
+                                     <a href="#" class="close" onclick="javascript:closeVerifySymbols(0)">close</a>
+                        </div>
+                    </div>
+             </div>  
+   
+   
+
+<script type="text/javascript">
+
+var inspcanvs = null ;
+var editMode = "navigate" ;
+var currentRegionIndex = 0 ;
+var numCurrentRegions = 0 ;
+
+var closeVerifySymbols = function() 
+{
+    
+    currentRegionIndex = 0 ;
+    var inspectionlens = document.getElementById("inspectionlens") ;
+    inspectionlens.style.opacity = 0.75 ;
+    
+}
+
+var nextSymbol = function() 
+{
+    
+    if(currentRegionIndex == (numCurrentRegions-1))
+    {
+        currentRegionIndex = 0 ;
+            verifySymbols(currentRegionIndex) ;
+    }
+    else
+    {
+        currentRegionIndex++ ;
+        verifySymbols(currentRegionIndex) ;
+    }
+    
+}
+
+var verifySymbols = function(regionIndex)
+{
+    
+    
+      var verifycanvas  = document.getElementById("verifycanvas") ;
+      var verifycanvasCtx = verifycanvas.getContext("2d") ;
+      var verifycanvas2  = document.getElementById("verifycanvas2") ;
+      var verifycanvas2Ctx = verifycanvas2.getContext("2d") ;
+
+      
+      var inspectionlens = document.getElementById("inspectionlens") ;
+      var inspectCanvas = document.getElementById("inspectcanvas") ;
+      verifycanvas.width = 125 ;
+      verifycanvas.height = 125 ;
+       verifycanvas2.width = 125 ;
+      verifycanvas2.height = 125 ;
+      
+      var xmid = Math.round( verifycanvas.width / 2) ;
+     var ymid = Math.round(verifycanvas.height / 2 ) ;
+                
+      
+      var inspectCanvasCtx = inspectCanvas.getContext("2d") ;
+    
+      var boxelearray = document.getElementsByClassName("box") ;
+      var boxele = boxelearray[0] ;
+
+      inspectionlens.style.opacity = 1 ;
+
+         
+   if(inspcanvs != null)
+   {
+       var filterRegions = inspcanvs.getFilterRegions() ;
+
+      
+            numCurrentRegions = filterRegions.length ;
+        
+        
+              // display strike (orientation)
+            var  perimeterContour = filterRegions[regionIndex].perimeterContour ;
+            var strike = filterRegions[regionIndex].degrees ;
+            var bbox = filterRegions[regionIndex].getBoundingBox() ;
+            strike = Math.abs(strike)
+            strike = Math.floor(strike) ;
+            
+          
+         
+         
+         
+           inspectCanvasCtx.strokeStyle =  "red";
+           inspectCanvasCtx.strokeWidth = 1; 
+           inspectCanvasCtx.fillStyle = "red"; 
+           inspectCanvasCtx.beginPath();
+           inspectCanvasCtx.moveTo(bbox.left -1, bbox.top -1) ;
+           inspectCanvasCtx.lineTo(bbox.left -1 , bbox.top + bbox.height + 1) ;
+           inspectCanvasCtx.lineTo(bbox.left + bbox.width + 1, bbox.top  + 1 + bbox.height) ;
+           inspectCanvasCtx.lineTo(bbox.left + bbox.width + 1 , bbox.top -1 ) ;
+           inspectCanvasCtx.lineTo(bbox.left -1 ,  bbox.top - 1 ) ;
+           inspectCanvasCtx.stroke();
+         
+         
+          // alert("left: " + bbox.left + " top: " + bbox.top + " height:" + bbox.height + " width:" + bbox.width) ;
+           
+           verifycanvasCtx.strokeStyle =  "blue";
+           verifycanvasCtx.strokeWidth = 1; 
+           verifycanvasCtx.fillStyle = "blue"; 
+           verifycanvasCtx.beginPath();
+           verifycanvasCtx.moveTo(bbox.left -1, bbox.top -1) ;
+           verifycanvasCtx.lineTo(bbox.left -1 , bbox.top + bbox.height + 1) ;
+           verifycanvasCtx.lineTo(bbox.left + bbox.width + 1, bbox.top  + 1 + bbox.height) ;
+           verifycanvasCtx.lineTo(bbox.left + bbox.width + 1 , bbox.top -1 ) ;
+           verifycanvasCtx.lineTo(bbox.left -1 ,  bbox.top - 1 ) ;
+           verifycanvasCtx.stroke();
+         
+         
+          if(perimeterContour !== null && perimeterContour.points !== null && perimeterContour.points.length > 2)
+          {    
+                var pt = perimeterContour.points[0] ;
+                    
+                verifycanvasCtx.beginPath();
+                
+                
+                
+                verifycanvasCtx.moveTo(pt.x, pt.y) ;
+               
+                
+           
+                for(var i = 1 ; i < perimeterContour.points.length ; i++)
+                {
+                        
+                          verifycanvasCtx.strokeStyle =  "black";
+                        verifycanvasCtx.strokeWidth = 1; 
+                        verifycanvasCtx.fillStyle = "black";
+                
+                        pt = perimeterContour.points[i] ;
+                        verifycanvasCtx.lineTo(pt.x, pt.y) ;
+               
+                }
+                
+                 verifycanvasCtx.stroke();
+         
+                
+                verifycanvas2Ctx.moveTo((pt.x - bbox.left)  + xmid, (pt.y - bbox.top) + ymid ) ;
+                var nextPt = pt ;
+                
+                for(var i = 0 ; i < perimeterContour.points.length - 1 ; i++)
+                {
+                
+                        verifycanvas2Ctx.strokeStyle =  "blue";
+                        verifycanvas2Ctx.strokeWidth = 3; 
+                        verifycanvas2Ctx.fillStyle = "blue";
+                        
+                
+                        pt1 = perimeterContour.points[i] ;
+                        pt2 = perimeterContour.points[i+1] ;
+                        var diffx = pt2.x - pt1.x ;
+                        var diffy = pt2.y - pt1.y ;
+                        
+                        diffx = diffx * 2 ;
+                        diffy = diffy * 2  ;
+                        
+                        nextPt.x = nextPt.x + diffx ;
+                        nextPt.y = nextPt.y + diffy ;
+                        
+                        verifycanvas2Ctx.lineTo(( nextPt.x - bbox.left)  + (xmid), (nextPt.y- bbox.top) + (ymid) )  ;
+                        
+                        if(i == perimeterContour.points.length - 3 )
+                        {
+                                 // diffx = pt.x - pt2.x ;
+                                // diffy = pt.y - pt2.y ;
+                                // diffx = diffx * 2 ;
+                                // diffy = diffy * 2  ;
+                        
+                              //   nextPt.x = nextPt.x + diffx ;
+                            //     nextPt.y = nextPt.y + diffy ;
+                              //   verifycanvas2Ctx.lineTo(( nextPt.x - bbox.left)  + (xmid), (nextPt.y- bbox.top) + (ymid) )  ;
+                                 verifycanvas2Ctx.lineTo((pt.x - bbox.left)  + xmid, (pt.y - bbox.top) + ymid ) ;
+                        }
+                }
+         
+         
+                  verifycanvas2Ctx.stroke();
+         
+         
+            var strikeEle = document.getElementById("strikeTxt") ;
+            strikeEle.value = strike ;
+           
+    
+            
+            
+             
+          }
+      
+      
+      
+         // boxele.style.display = "none" ;
+      
+        
+        // TODO  identify symbol heuristics
+       
+       
+   }
+    
+    
+}
+
+
+
+var changeMode = function()
+{
+    var mapDiv = document.getElementById("map") ;
+    var mapcanvasDiv = document.getElementById("mapcanvas") ;
+    var modebtn = document.getElementById("editmode") ;
+    var inspectionlens = document.getElementById("inspectionlens") ;
+  
+    
+    
+    
+    if(editMode == "navigate")
+    {
+        editMode = "inspect" ;
+         $('.popbox').show() ;
+    
+        mapcanvasDiv.style.display = "block" ;
+        mapDiv.style.display = "none" ;
+        modebtn.value = "navigate mode" ;
+        inspectionlens.style.display = "block" ;
+       
+    }
+    else
+    {
+        editMode = "navigate" ;
+        mapcanvasDiv.style.display = "none" ;
+        mapDiv.style.display = "block" ;
+        modebtn.value = "inspect mode" ;
+        inspectionlens.style.display = "none" ;
+         $('.popbox').hide() ;
+    
+    }
+    
+}
+
+var changeSlider = function(eleStr, newval)
+{
+
+    var txtEle = document.getElementById(eleStr) ;
+    txtEle.value = newval ;
+    
+    
+}
+
+
+var thresholdSlider = function(eleStr, newval)
+{
+
+    var txtEle = document.getElementById(eleStr) ;
+    txtEle.value = newval ;
+    
+        var inspectCanvas = document.getElementById("inspectcanvas") ;
+        var inspectCtx = inspectCanvas.getContext("2d") ;
+     
+       
+       
+        var lens = document.getElementById("inspectionlens") ;
+        var mapCanvas = document.getElementById("mapcvs") ;
+        
+        
+        $thresholdMax = newval
+        
+       if(inspcanvs==null)
+       {
+            inspcanvs = new InspectCanvas(inspectCanvas ) ;
+       }
+      inspcanvs.copyDataFromLens(lens, mapCanvas) ;
+       inspcanvs.greyscale() ;
+         
+       var hist = inspcanvs.getGreyscaleHistogram() ;
+      
+       inspcanvs.threshold($thresholdMax) ;
+     
+       inspcanvs.invert() ;
+       
+      
+       var contourTracer = new ContourTracer(inspectCanvas) ;
+        contourTracer.findAllContours() ;
+        contourTracer.collectRegions() ;
+        var regions =  contourTracer.getBinaryRegions() ;
+        
+         var minRoundness = document.getElementById("minRoundness").value ;
+        var maxRoundness = document.getElementById("maxRoundness").value ;
+        var minRegionSize = document.getElementById("minRegionSize").value ;
+        var maxRegionSize = document.getElementById("maxRegionSize").value ;
+        var minEccentricity = document.getElementById("minEccentricity").value ;
+        var maxEccentricity = document.getElementById("maxEccentricity").value ;
+        
+        var filterParams =  {"minRegionSize":minRegionSize , "maxRegionSize":maxRegionSize , "minRoundness":minRoundness , "maxRoundness":maxRoundness, "minEccentricity":minEccentricity, "maxEccentricity":maxEccentricity } ;
+        // var filterParams =  {"minRegionSize":25 , "maxRegionSize":550 , "minRoundness":0 , "maxRoundness":0.7, "minEccentricity":minEccentricity, "maxEccentricity":maxEccentricity } ;
+        inspcanvs.filterRegions(regions, filterParams) ;
+    
+}
+
+// Jquery to handle dragging see http://jsfiddle.net/tovic/Jge9z/31/
+$(document).ready(function() {
+    var $dragging = null;
+    var $mapCanvas = null ;        
+    var $ctx =  null ;
+    var $imageData ;
+    var $thresholdMax = 0 ;
+    
+    $('.popbox').popbox();
+    $('.popbox').hide() ; 
+   
+ //mousewheel increases and decrements dimensions of inspection lens 
+    $('#inspectionlens').bind('mousewheel', function(event, delta, deltaX, deltaY) {
+
+    var lens = document.getElementById("inspectionlens") ;
+    
+    if( lens.style.width == "")
+    {
+        lens.style.width = lens.clientWidth ;
+        lens.style.height = lens.clientHeight ;
+        
+    }
+    
+     var lenw =     parseInt(lens.style.width.slice(0, lens.style.width.indexOf("px"))) + ( deltaY * 5) ;
+     var lenh =   parseInt(lens.style.width.slice(0, lens.style.width.indexOf("px"))) + (deltaY * 5);
+    lens.style.width = lenw + "px" ;
+    lens.style.height = lenh + "px" ;
+
+    
+});
+ 
+ // mousewheel changes thresholdMax and redraws inspection canvas
+    $('#inspectcanvas').bind('mousewheel', function(event, delta, deltaX, deltaY) {
+    
+        var inspectCanvas = document.getElementById("inspectcanvas") ;
+        var inspectCtx = inspectCanvas.getContext("2d") ;
+     
+        
+         var lens = document.getElementById("inspectionlens") ;
+        $thresholdMax = $thresholdMax  + (5*deltaY) ;
+        
+        document.getElementById("maxThreshold").value = $thresholdMax ;
+        document.getElementById("maxThresholdTxt").value = $thresholdMax ;
+      
+       if(inspcanvs==null){
+        
+          inspcanvs = new InspectCanvas(inspectCanvas ) ;
+       }
+       inspcanvs.copyDataFromLens(lens, $mapCanvas) ;
+       inspcanvs.greyscale() ;
+         
+       var hist = inspcanvs.getGreyscaleHistogram() ;
+      
+       inspcanvs.threshold($thresholdMax) ;
+     
+       inspcanvs.invert() ;
+      
+       
+       var contourTracer = new ContourTracer(inspectCanvas) ;
+        contourTracer.findAllContours() ;
+        contourTracer.collectRegions() ;
+        var regions =  contourTracer.getBinaryRegions() ;
+        
+         var minRoundness = document.getElementById("minRoundness").value ;
+        var maxRoundness = document.getElementById("maxRoundness").value ;
+        var minRegionSize = document.getElementById("minRegionSize").value ;
+        var maxRegionSize = document.getElementById("maxRegionSize").value ;
+        var minEccentricity = document.getElementById("minEccentricity").value ;
+        var maxEccentricity = document.getElementById("maxEccentricity").value ;
+        
+        var filterParams =  {"minRegionSize":minRegionSize , "maxRegionSize":maxRegionSize , "minRoundness":minRoundness , "maxRoundness":maxRoundness, "minEccentricity":minEccentricity, "maxEccentricity":maxEccentricity } ;
+        // var filterParams =  {"minRegionSize":25 , "maxRegionSize":550 , "minRoundness":0 , "maxRoundness":0.7, "minEccentricity":minEccentricity, "maxEccentricity":maxEccentricity } ;
+        inspcanvs.filterRegions(regions, filterParams) ;
+        
+        
+    });
+ 
+    var drawMode = false ;
+ 
+    $('body').on("mousedown", "canvas.inspectcanvas", function(e) {
+        // TODO filter out border lines already drawn on canvastion(e) {
+     
+        drawMode = true ;
+     
+       if(inspcanvs==null){
+        
+         inspcanvs = new InspectCanvas(inspectCanvas ) ;
+       }
+        
+        inspcanvs.clearFilterRegionBbox() ; 
+      
+     
+   });
+ 
+    $('body').on("mouseup", "canvas.inspectcanvas", function(e) {
+     
+       drawMode = false ;
+       var inspectCanvas = document.getElementById("inspectcanvas") ;
+       var inspectCtx = inspectCanvas.getContext("2d") ;
+        
+      
+        
+      
+        var contourTracer = new ContourTracer(inspectCanvas) ;
+        contourTracer.findAllContours() ;
+        contourTracer.collectRegions() ;
+        var regions =  contourTracer.getBinaryRegions() ;
+        
+         var minRoundness = document.getElementById("minRoundness").value ;
+        var maxRoundness = document.getElementById("maxRoundness").value ;
+        var minRegionSize = document.getElementById("minRegionSize").value ;
+        var maxRegionSize = document.getElementById("maxRegionSize").value ;
+        var minEccentricity = document.getElementById("minEccentricity").value ;
+        var maxEccentricity = document.getElementById("maxEccentricity").value ;
+     
+       
+        var filterParams =  {"minRegionSize":minRegionSize , "maxRegionSize":maxRegionSize , "minRoundness":minRoundness , "maxRoundness":maxRoundness, "minEccentricity":minEccentricity, "maxEccentricity":maxEccentricity } ;
+        inspcanvs.filterRegions(regions, filterParams) ;
+     
+     
+   });
+    
+    $('body').on("mousemove", "canvas.inspectcanvas", function(e) {
+     
+        if(drawMode)
+        {
+            
+            var inspectCanvas = document.getElementById("inspectcanvas") ;
+            var inspectCtx = inspectCanvas.getContext("2d") ;
+            inspectCtx.fillStyle = "black" ;
+            inspectCtx.fillRect(e.pageX - inspectCanvas.offsetLeft, e.pageY - inspectCanvas.offsetTop , 3,3) ;
+        }
+                 
+   });
+    
+    
+    
+    $('body').on("mousedown", "div.inspectionlens", function(e) {
+        $(this).attr('unselectable', 'on').addClass('draggable');
+        var el_w = $('.draggable').outerWidth(),
+            el_h = $('.draggable').outerHeight();
+        $('body').on("mousemove", function(e) {
+            if ($dragging) {
+                $dragging.offset({
+                    top: e.pageY - el_h / 2,
+                    left: e.pageX - el_w / 2
+                
+                });
+            
+            }
+        });
+    
+        $dragging = $(e.target);
+    
+    }).on("mouseup", ".draggable", function(e) {
+  
+        $dragging = null;
+        var el_w = $('.draggable').outerWidth(),
+         el_h = $('.draggable').outerHeight();
+        $(this).removeAttr('unselectable').removeClass('draggable');
+    
+       if($mapCanvas==null)
+        {
+            $mapCanvas = document.getElementById("mapcvs") ;
+            $ctx  = $mapCanvas.getContext("2d") ;
+        }
+        
+      
+        var lens = document.getElementById("inspectionlens") ;
+        var inspectCanvas = document.getElementById("inspectcanvas") ;
+       var inspectCanvasCtx =  inspectCanvas.getContext("2d")  ;
+    
+        var pblist = document.getElementsByClassName("popbox") ;
+        var popbox = pblist[0] ;
+        popbox.offsetLeft = lens.offsetLeft ;
+        popbox.offsetTop = lens.offsetTop ;
+         popbox.style.left = lens.style.left ;
+         popbox.style.top = lens.style.top ;
+         popbox.clientLeft = lens.clientLeft ;
+         popbox.clientTop = lens.clientTop ;
+         
+        if(inspcanvs==null)
+        {
+           inspcanvs = new InspectCanvas(inspectCanvas ) ;
+        }
+       inspcanvs.copyDataFromLens(lens, $mapCanvas) ;
+       inspcanvs.greyscale() ;
+         
+       var hist = inspcanvs.getGreyscaleHistogram() ;
+    
+       $thresholdMax = entropySplit(hist) ;
+       document.getElementById("maxThreshold").value = $thresholdMax ;
+       document.getElementById("maxThresholdTxt").value = $thresholdMax ;
+        
+     
+       inspcanvs.threshold($thresholdMax) ;
+     
+       inspcanvs.invert() ;
+       
+       
+       
+        var contourTracer = new ContourTracer(inspectCanvas) ;
+        contourTracer.findAllContours() ;
+        contourTracer.collectRegions() ;
+        var regions =  contourTracer.getBinaryRegions() ;
+        
+        
+        var minRoundness = document.getElementById("minRoundness").value ;
+        var maxRoundness = document.getElementById("maxRoundness").value ;
+        var minRegionSize = document.getElementById("minRegionSize").value ;
+        var maxRegionSize = document.getElementById("maxRegionSize").value ;
+        var minEccentricity = document.getElementById("minEccentricity").value ;
+        var maxEccentricity = document.getElementById("maxEccentricity").value ;
+    
+        
+        var filterParams =  {"minRegionSize":minRegionSize , "maxRegionSize":maxRegionSize , "minRoundness":minRoundness , "maxRoundness":maxRoundness, "minEccentricity":minEccentricity, "maxEccentricity":maxEccentricity } ;
+        inspcanvs.filterRegions(regions, filterParams) ;
+
+        
+          
+    }); // ends mouseup event
+    
+    
+    
+    $('body').on("mousedown", "div.mapcanvas", function(e) {
+     
+       changeMode();
+                 
+   });
+    
+    
+    
+}); //onready event
+
+
+var InspectCanvas = function(inspectcanvas){
+    
+    var inspectCanvas = inspectcanvas ;
+    var inspectWidth = 75 ;
+    inspectHeight = 75 ;
+    var filterRegions = [] ;
+    
+    this.copyDataFromLens = function(inspectlens, canvas) 
+    {
+        var lens = inspectlens ;
+        var mapCanvas = canvas ;
+
+        inspectWidth = lens.clientWidth ;
+        inspectHeight = lens.clientHeight ;
+        
+
+        var ctx  = mapCanvas.getContext("2d") ;
+        var imgData = ctx.getImageData(lens.offsetLeft - mapCanvas.offsetLeft , lens.offsetTop - mapCanvas.offsetTop, inspectWidth, inspectHeight ) ;
+        
+        inspectCanvas.width = inspectWidth ;
+        inspectCanvas.height = inspectHeight ;
+        var inspectCanvasCtx = inspectCanvas.getContext("2d") ;
+        inspectCanvasCtx.putImageData(imgData, 0 , 0) ;
+        
+    };
+    
+    this.getFilterRegions = function(){
+      return filterRegions ;  
+    };
+    
+    this.greyscale = function (){
+        greyscale(inspectCanvas, 0, 0 , inspectWidth, inspectHeight) ;
+    };
+    
+    this.threshold = function(thresholdMax)
+    {
+        threshold(inspectCanvas, 0 , 0, inspectWidth, inspectHeight, thresholdMax) ;   
+    };
+    
+    this.getGreyscaleHistogram = function()
+    {
+    
+      return getGreyscaleHistogram(inspectCanvas, 0 , 0, inspectWidth, inspectHeight) ;
+    
+    };
+    
+    this.invert = function (){
+      
+        invert(inspectCanvas, 0, 0 , inspectWidth, inspectHeight) ;  
+        
+    };
+    
+  
+     this.clearFilterRegionBbox = function()
+     {
+         if(filterRegions !== null && filterRegions.length > 0)
+         {
+             
+             
+           for(var i = 0 ; i < filterRegions.length ; i++)
+           {
+                 var inspectCanvasCtx = inspectCanvas.getContext("2d") ;    
+                inspectCanvasCtx.strokeStyle =  "rgb(0,0,0)";
+                inspectCanvasCtx.strokeWidth = 1; 
+                inspectCanvasCtx.fillStyle = "rgb(0,0,0)"; 
+                    
+                var bbox = filterRegions[i].getBoundingBox() ;            
+                inspectCanvasCtx.beginPath();
+                inspectCanvasCtx.moveTo(bbox.left -1, bbox.top -1) ;
+                inspectCanvasCtx.lineTo(bbox.left -1 , bbox.top + bbox.height + 1) ;
+                inspectCanvasCtx.lineTo(bbox.left + bbox.width + 1, bbox.top  + 1 + bbox.height) ;
+                inspectCanvasCtx.lineTo(bbox.left + bbox.width + 1 , bbox.top -1 ) ;
+                inspectCanvasCtx.lineTo(bbox.left -1 ,  bbox.top - 1 ) ;
+                inspectCanvasCtx.stroke();
+            
+           }
+         }
+         
+     }
+      
+      
+     this.filterRegions = function(regions, filterParams)
+     {
+        
+        
+            var minRegionSize = 25 ;
+            var maxRegionSize = 2000 ;
+            var minRoundness = 0 ;
+            var maxRoundness = 1 ;
+            var minEccentricity = 0 ;
+            var maxEccentricity = 1000 ;
+            
+        
+            if(filterParams != null)
+            {
+                minRegionSize = filterParams.minRegionSize == null ? 25 : filterParams.minRegionSize ;
+                maxRegionSize = filterParams.maxRegionSize == null ? 2000 : filterParams.maxRegionSize ;
+                minRoundness = filterParams.minRoundness == null ? 0 : filterParams.minRoundness ;
+                maxRoundness = filterParams.maxRoundness == null ? 0 : filterParams.maxRoundness ;
+                maxEccentricity = filterParams.maxEccentricity == null ? 0 : filterParams.maxEccentricity ;
+                minEccentricity = filterParams.minEccentricity == null ? 0 : filterParams.minEccentricity ;
+            }
+        
+             var inspectCanvasCtx = inspectCanvas.getContext("2d") ;    
+            filterRegions = [] ;
+            
+            for( i = 0 ; i < regions.length ; i++)
+                {
+                     var regionSize = 0 ;
+                     var perimSize = 0 ;
+                     var roundness = 0 ;
+                     var eccentricity = 0 ;
+                     var bbox = regions[i].getBoundingBox() ;
+                     
+                    
+                        regionSize = regions[i].getSize() ;
+                      if (regionSize > minRegionSize && regionSize < maxRegionSize) 
+                      {
+                        perimSize = regions[i].perimeterContour.points.length ;
+                        roundness =  (4 * Math.PI)  * ( regionSize / Math.pow(perimSize,2) )  ;
+                        
+                         var u20 =  centralMoment(inspectCanvas, bbox.left, bbox.top, bbox.width, bbox.height, 2, 0); 
+                         var u02 =  centralMoment(inspectCanvas, bbox.left, bbox.top, bbox.width, bbox.height, 0, 2); 
+                         var u11 =  centralMoment(inspectCanvas, bbox.left, bbox.top, bbox.width, bbox.height, 1, 1); 
+                         var sqDiff2 = Math.pow((u20-u02), 2) ;
+                         var sum2 = u20 + u02 ;
+                         var sq4u11 = Math.pow(u11, 2) * 4 ;
+                             
+                         eccentricity = (sum2 + Math.sqrt(sqDiff2 + sq4u11)) /  (sum2 - Math.sqrt(sqDiff2 + sq4u11)) ;
+                         
+                         
+                      }
+                        
+                    
+                    if(regionSize > minRegionSize && regionSize < maxRegionSize && roundness > minRoundness && roundness < maxRoundness && eccentricity > minEccentricity &&  eccentricity < maxEccentricity )
+                    {
+                
+                        inspectCanvasCtx.strokeStyle =  "rgb(0,255,0)";
+                        inspectCanvasCtx.strokeWidth = 1; 
+                        inspectCanvasCtx.fillStyle = "rgb(0,255,0)"; 
+                        inspectCanvasCtx.beginPath();
+                        inspectCanvasCtx.moveTo(bbox.left -1, bbox.top -1) ;
+                        inspectCanvasCtx.lineTo(bbox.left -1 , bbox.top + bbox.height + 1) ;
+                        inspectCanvasCtx.lineTo(bbox.left + bbox.width + 1, bbox.top  + 1 + bbox.height) ;
+                        inspectCanvasCtx.lineTo(bbox.left + bbox.width + 1 , bbox.top -1 ) ;
+                        inspectCanvasCtx.lineTo(bbox.left -1 ,  bbox.top - 1 ) ;
+                        inspectCanvasCtx.stroke();
+                     
+                     //   var rCenter = regions[i].getCenter() ;
+                        
+                   
+                        var m00 = moment(inspectCanvas, bbox.left, bbox.top, bbox.width, bbox.height, 0, 0); // region area
+                        var xCtr = moment(inspectCanvas,bbox.left, bbox.top, bbox.width, bbox.height, 1, 0) / m00;
+                        var yCtr = moment(inspectCanvas,bbox.left, bbox.top, bbox.width, bbox.height, 0, 1) / m00;
+                        var angle = orientation(inspectCanvas,bbox.left, bbox.top, bbox.width, bbox.height ) ;
+                        var degrees = angle * 180 / Math.PI ;
+                         
+                        
+                         inspectCanvasCtx.beginPath();
+                        inspectCanvasCtx.arc( bbox.left  + xCtr, bbox.top + yCtr, 2, 0, 2 * Math.PI, false);
+                        inspectCanvasCtx.fillStyle = 'green';
+                        inspectCanvasCtx.fill();
+                         inspectCanvasCtx.stroke();
+                        
+                        regions[i].degrees = degrees ;
+                        regions[i].angle = angle ;
+                        
+                        if(filterRegions.length == 0)
+                        {
+                            filterRegions[0] = regions[i] ;
+                        }
+                        else
+                        {
+                            filterRegions[filterRegions.length] = regions[i] ;
+                        }
+                    }
+                    
+                 
+                }
+           
+     }
+    
+};
+
+//	var bounds = new OpenLayers.Bounds (-7.86621, 49.838, 1.8457, 60.877);
+
+
+//	var map = new OpenLayers.Map('map',  {controls: [], projection: new OpenLayers.Projection("EPSG:900913"), units: "m", maxExtent: bounds});
+
+var bounds = new OpenLayers.Bounds (0, 0, 700000, 1300000);
+
+
+	var map = new OpenLayers.Map('map',  {controls: [], projection: new OpenLayers.Projection("EPSG:27700"), units: "m", maxExtent: bounds, resolutions: [1024,512,256,128,64,32,16,8,4,2,1]});
+
+   
+   
+
+	map.addControl(new OpenLayers.Control.Navigation());
+	map.addControl(new OpenLayers.Control.LayerSwitcher());
+	map.addControl(new OpenLayers.Control.PanZoomBar());
+	map.addControl(new OpenLayers.Control.Scale());
+    var canvasDiv = null ;
+    var mapcanvasDiv = null ;
+
+    //var fieldtripgb = new OpenLayers.Layer.WMS("nls", "http://geo.nls.uk/cgi-bin/mapserv.exe?", { version:"", layername: "bartholomew/great_britain", type: "png", tileOptions:
+      //  {crossOriginKeyword:'annonymous'} } ) ;
+        
+      var fieldtripgb  = new OpenLayers.Layer.WMS("nlswms","http://geo.nls.uk/cgi-bin/mapserv.exe?", 
+       { map: 'e:/mapdata2/bartholomew/great_britain/mapserver.map',layers: 'map',  transparent: 'true'}, {resolutions:[1024,512,256,128,64,32,16,8,4,2,1], tileOptions:
+        {crossOriginKeyword:'annonymous'}, visibility: true, isBaseLayer:true }  );
+        
+  
+     //  var fieldtripgb = new OpenLayers.Layer.TMS("cloud", "http://dlib-rainbow.edina.ac.uk/mapcache/tms", { layername: "fieldtripgb@BNG", type: "png", serverResolutions:[1024,512,256,128,64,32,16,8,4,2,1], tileOptions:
+      //  {crossOriginKeyword:'annonymous'} } ) ;
+        
+   // could be worth tile options lsitener?
+
+      document.getElementById("mapcanvas").style.display = "none" ;
+      document.getElementById("inspectionlens").style.display = "none"  ;
+   
+     
+      
+      fieldtripgb.events.register("loadend", fieldtripgb, function(fieldtripgb)
+      {
+          
+            if(mapcanvasDiv == null)
+                 {
+                      
+                    canvasDiv = document.createElement("canvas") ;
+                    canvasDiv.id = "mapcvs"
+                    mapcanvasDiv = document.getElementById("mapcanvas") ;
+                    mapDiv = document.getElementById("map") ;
+                    
+                    mapcanvasDiv.appendChild(canvasDiv) ;
+                 
+                     //canvasDiv.style.width = tileImgParent.style.width ;
+                     canvasDiv.width = mapDiv.clientWidth ;
+                     canvasDiv.height = mapDiv.clientHeight ;
+                    
+                 }
+          
+          
+        var mapCanvas = document.getElementById("mapcvs" ) ;
+           var mapContainer = document.getElementById("OpenLayers.Map_2_OpenLayers_Container") ;
+           
+           
+        
+           
+           if(mapCanvas !== null)
+           {
+                var ctx = mapCanvas.getContext("2d") ;
+            
+                var layers = document.getElementsByClassName("olLayerDiv") ;
+                
+                // ignore base layer but redraw other layers on canvas
+                for(var i = 0 ; i < layers.length ; i++)
+                {
+        
+                    var layertiles = layers[i].getElementsByClassName("olTileImage") ;
+                    for(var j = 0 ; j < layertiles.length ; j++ )
+                    {
+                        var tileImg = layertiles[j]  ;
+               
+                        var clientLeft = tileImg.offsetLeft;
+                        var offsetLeft = tileImg.offsetLeft;
+                        var offsetTop = tileImg.offsetTop ;
+           
+                    
+                    
+                        var left = Number(mapContainer.style.left.slice(0, mapContainer.style.left.indexOf("p"))) ;
+                        var top = Number(mapContainer.style.top.slice(0, mapContainer.style.top.indexOf("p")))
+                        ctx.drawImage(tileImg, offsetLeft + left, offsetTop + top) ;
+                
+                    }
+               
+                }
+           }
+          
+          
+          
+      });
+      
+       map.events.register("moveend", map , function(map)
+       {
+           
+           var mapCanvas = document.getElementById("mapcvs" ) ;
+           var mapContainer = document.getElementById("OpenLayers.Map_2_OpenLayers_Container") ;
+           
+           
+        
+           
+           if(mapCanvas !== null)
+           {
+                var ctx = mapCanvas.getContext("2d") ;
+            
+                var layers = document.getElementsByClassName("olLayerDiv") ;
+                
+                for(var i = 0 ; i < layers.length ; i++)
+                {
+        
+                    var layertiles = layers[i].getElementsByClassName("olTileImage") ;
+                    for(var j = 0 ; j < layertiles.length ; j++ )
+                    {
+                        var tileImg = layertiles[j]  ;
+               
+                        var clientLeft = tileImg.offsetLeft;
+                        var offsetLeft = tileImg.offsetLeft;
+                        var offsetTop = tileImg.offsetTop ;
+           
+                    
+                    
+                        var left = Number(mapContainer.style.left.slice(0, mapContainer.style.left.indexOf("p"))) ;
+                        var top = Number(mapContainer.style.top.slice(0, mapContainer.style.top.indexOf("p")))
+                        ctx.drawImage(tileImg, offsetLeft + left, offsetTop + top) ;
+                
+                    }
+               
+                }
+           }
+       });
+       
+       
+       var arranwms = new OpenLayers.Layer.WMS("wms","http://129.215.193.137:8090/cgi-bin/mapserv62.fcgi?", 
+       { map: 'mapfiles/arran.map',layers: 'arran',  transparent: 'true'}, {resolutions:[1024,512,256,128,64,32,16,8,4,2,1], tileOptions:
+        {crossOriginKeyword:'annonymous'}, visibility: true }  );
+       
+       var  torquaywms = new OpenLayers.Layer.WMS("torquaywms","http://129.215.193.137:8090/cgi-bin/mapserv62.fcgi?", 
+       { map: 'mapfiles/torquay.map',layers: 'torquay',  transparent: 'true'}, {resolutions:[1024,512,256,128,64,32,16,8,4,2,1], tileOptions:
+        {crossOriginKeyword:'annonymous'}, visibility: true }  );
+
+        var seventh  = new OpenLayers.Layer.WMS("seventh","http://geo.nls.uk/cgi-bin/mapserv.exe?", 
+       { map: 'e:/mapdata2/os/seventh/mapserver.map',layers: 'map',  transparent: 'true'}, {resolutions:[1024,512,256,128,64,32,16,8,4,2,1], tileOptions:
+        {crossOriginKeyword:'annonymous'}, visibility: true, isBaseLayer:false }  );
+       
+
+
+       
+    //   map.addLayers([fieldtripgb, arranwms, torquaywms]);
+
+     map.addLayers([fieldtripgb, seventh]);
+
+       map.zoomToMaxExtent();
+
+      </script>
+
+</body>
+</html>
