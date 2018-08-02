@@ -1,0 +1,206 @@
+<html>
+<head>
+   <title>Symbol Classification</title>
+   <script src="js/ContourRegion.js" type="text/javascript"></script>
+   
+   
+   <style type="text/css">
+        
+        .testimg{
+        width: 40%;
+        height:90%;
+        float: left;
+        }
+        
+       .canvas{
+        width: 40%;
+        height:90%;
+        float: left;
+        	
+        }
+        .canvastest{
+        width: 10%;
+        height:10%;
+        float: left;
+        	
+        }
+       
+    </style>
+    
+</head>
+    
+    
+    <body>
+
+	
+	    <p><h3>Symbol Classification</h3></p>
+	    
+	    <div id="canvastestdiv" class="canvastest"></div>
+	    <div id="imgdiv" class="testimg">
+            <img id="inclinedClev" src="images/Inclined Clevage.png" alt="inclined clevage symbol" onload='classifySymbol(this)'/>
+            <input type="text" id="inclinedClevTxt"/>
+            <img id="inclinedStrata" src="images/Inclined Strata.png" alt="inclined clevage symbol" onload='classifySymbol(this)'/>
+            <input type="text" id="inclinedStrataTxt"/>
+            <img id="verticalClevage" src="images/Vertical Clevage.PNG" alt="inclined clevage symbol" onload='classifySymbol(this)'/>
+            <input type="text" id="verticalClevageTxt"/>
+            <img id="verticalStrata" src="images/Vertical Strata.PNG" alt="inclined clevage symbol" onload='classifySymbol(this)'/>
+            <input type="text" id="verticalStrataTxt"/>
+            
+        </div>
+        
+        <div id="canvasdiv" class="canvas"></div>
+    
+                  
+        <script type="text/javascript">
+        
+        
+       
+            
+        
+       
+        var classifySymbol = function(shpimg)
+        {
+        
+                var canvas = document.createElement("canvas") ;
+                canvas.width = 200  ; //  imgDiv.clientWidth ;
+                canvas.height = 200  ;// imgDiv.clientHeight ;
+                
+                var canvasDiv = document.getElementById("canvasdiv") ;
+                // var imgDiv =  document.getElementById("imgdiv") ;
+        
+                canvasDiv.appendChild(canvas) ;
+                
+                var ctx=canvas.getContext("2d");
+                ctx.drawImage(shpimg, 0,0) ;
+                
+                greyscale(canvas, 0 , 0, canvas.width, canvas.height) ;
+                var hist = getGreyscaleHistogram(canvas, 0 , 0, canvas.width, canvas.height) ;
+                var thresholdMax = entropySplit(hist) ;
+                //    threshold(canvas, 0 , 0, canvas.width, canvas.height, thresholdMax) ;
+                invert(canvas, 0 , 0, canvas.width, canvas.height) ;
+                blackPercentThreshold(canvas, 0 , 0, canvas.width, canvas.height, 0.75) ;
+                var contourTracer = new ContourTracer(canvas) ;
+                contourTracer.findAllContours() ;
+                contourTracer.collectRegions()
+                var regions = contourTracer.getBinaryRegions() ;
+             
+                if (regions == null )
+                {
+                    console.log("<collectRegions> did not find any regions") ;
+                }
+                else
+                {
+                     console.log("<collectRegions> found "  + regions.length + " regions") ;
+             
+                     ctx.strokeStyle = "white";
+                
+                    for( i = 0 ; i < regions.length ; i++)
+                    {
+                        var bbox = regions[i].getBoundingBox() ;
+                        ctx.beginPath();
+                        ctx.moveTo(bbox.left -1, bbox.top -1) ;
+                        ctx.lineTo(bbox.left -1 , bbox.top + bbox.height + 1) ;
+                        ctx.lineTo(bbox.left + bbox.width + 1, bbox.top  + 1 + bbox.height) ;
+                        ctx.lineTo(bbox.left + bbox.width + 1 , bbox.top -1 ) ;
+                        ctx.lineTo(bbox.left -1 ,  bbox.top - 1 ) ;
+                        ctx.stroke();
+                    
+                    
+                        var m00 = moment(canvas, bbox.left, bbox.top, bbox.width, bbox.height, 0, 0); // region area
+                        var xCtr = moment(canvas,bbox.left, bbox.top, bbox.width, bbox.height, 1, 0) / m00;
+                        var yCtr = moment(canvas,bbox.left, bbox.top, bbox.width, bbox.height, 0, 1) / m00;
+                        var angle = orientation(canvas,bbox.left, bbox.top, bbox.width, bbox.height ) ;
+                        var degrees = angle * 180 / Math.PI ;
+                    
+                        var u20 =  centralMoment(canvas, bbox.left, bbox.top, bbox.width, bbox.height, 2, 0); 
+                        var u02 =  centralMoment(canvas, bbox.left, bbox.top, bbox.width, bbox.height, 0, 2); 
+                        var u11 =  centralMoment(canvas, bbox.left, bbox.top, bbox.width, bbox.height, 1, 1); 
+                        var sqDiff2 = Math.pow((u20-u02), 2) ;
+                        var sum2 = u20 + u02 ;
+                        var sq4u11 = Math.pow(u11, 2) * 4 ;
+                         
+                        var eccentricity = (sum2 + Math.sqrt(sqDiff2 + sq4u11)) / (sum2 - Math.sqrt(sqDiff2 + sq4u11)) ;
+                      regionSize = regions[i].getSize() ;
+                        var perimSize = regions[i].perimeterContour.points.length ;
+                        var roundness =  (4 * Math.PI)  * ( regionSize / Math.pow(perimSize,2) )  ;
+                    
+                        var compactness = regionSize / perimSize ;
+                    
+                        ctx.beginPath();
+                        ctx.arc( bbox.left + xCtr, bbox.top + yCtr, 3, 0, 2 * Math.PI, false);
+                        ctx.fillStyle = 'red';
+                        ctx.fill();
+                        ctx.stroke();
+                    
+                        var txtfield = document.getElementById(shpimg.id + "Txt") ;
+                        txtfield.value = "eccentricity: " + eccentricity + "  m00: " + m00 + "   roundness: " + roundness + "  compactness: " + compactness + " degrees: " + degrees ;
+                    
+                        var perimContour = regions[i].perimeterContour ;
+                        var totalDCtr = 0 ;
+                        var minRAngle = Math.pi / 4  ; 
+                        var startPtIndex = 0 ;
+                        
+                        for(var p = 0 ; p < perimContour.points.length ; p++)
+                        {
+                                var pt = perimContour.points[p] ;
+                                var dCtrX = pt.x - xCtr ;
+                                var dCtrY = pt.y = yCtr ;
+                                var dCtr = Math.sqrt((Math.pow(dCtrX,2) + Math.pow(dCtrY,2))) ;
+                                totalDCtr = totalDCtr + dCtr ;
+                                var theta = Math.asin(dCtrY / dCtr) ;
+                                var rAngle = Math.abs(angle) + theta  ;
+                                var diffAngle = Math.abs(rAngle - (Math.pi / 4)) ;
+                                if(diffAngle < minRAngle)
+                                {
+                                    minRAngle = diffAngle ;
+                                    startPtIndex = p ; 
+                                }
+                        }
+                    
+                        var meanDistanceFromCenter = totalDCtr /  perimContour.points.length ;
+                    //    var startPt = perimContour.points[startPtIndex] ;
+                
+                        
+                        for(var p = 0 ; p < perimContour.points.length ; p++)
+                        {
+                        
+                        var startPt = perimContour.points[p] ;
+                
+                        ctx.beginPath();
+                        ctx.arc( startPt.x, startPt.y, 1, 0, 2 * Math.PI, false);
+                        ctx.fillStyle = 'blue';
+                        ctx.fill();
+                        ctx.stroke();
+                        }
+                    }
+                }
+            
+            };
+        
+        
+/*    
+        var sym1 = document.getElementById("inclinedClev") ;
+        var sym2 = document.getElementById("inclinedStrata") ;
+        var sym3 = document.getElementById("verticalClevage") ;
+        var sym4 = document.getElementById("verticalStrata") ;
+            
+        sym1.onload = classifySymbol(sym1) ;
+        sym2.onload = classifySymbol(sym2) ;
+        sym3.onload = classifySymbol(sym3) ;
+        sym4.onload = classifySymbol(sym4) ;
+            
+        
+        var symbols = ["inclinedClev", "inclinedStrata", "verticalClevage", "verticalStrata"] ;
+  */      
+       
+        
+            
+         
+       
+      
+    
+      
+        </script>
+                 
+    </body>
+</html>
