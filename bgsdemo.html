@@ -94,6 +94,41 @@
         
         .box { width:350px; }
 
+        .buttonred {
+            -moz-border-radius: 15px;
+            background-color:#af2228;
+            border-radius: 15px;
+            color: white;
+            width:45px;
+            height: 25px;
+             float:left ;
+        }
+
+        .buttonyellow {
+            -moz-border-radius: 15px;
+            background-color:#ffb92d;
+            border-radius: 15px;
+            color: white;
+            width:45px;
+            height: 25px;
+             float:left ;
+    
+        }
+
+        .buttongreen {
+            -moz-border-radius: 15px;
+            background-color:#609846;
+            border-radius: 15px;
+            color: white;
+        
+            width:45px;
+            height: 25px;
+             float:left ;
+    
+        }
+        
+        
+
     </style>
 
     </head>
@@ -176,10 +211,33 @@
                                     <H5> Symbol Identification </H5>
                                     <canvas id="verifycanvas" width="75" height="75" style='border:2px solid black;;position:relative;'></canvas>
                                     <canvas id="verifycanvas2" width="75" height="75" style='border:2px solid black;;position:relative;'></canvas>
+                                    <ul>
+                                    <li>
                                     <label for="strikeTxt">Strike</label>
                                     <input id="strikeTxt" type="text" value="0" disabled/>
+                                    </li>
+                                    <li>
+                                    <label for="eccTxt">Eccentricity</label>
+                                    <input id="eccTxt" type="text" value="0" disabled/>
+                                    </li>
+                                    <li>
+                                    <label for="rndTxt">Roundness</label>
+                                    <input id="rndTxt" type="text" value="0" disabled/>
+                                    </li>
+                                    <li>
+                                    <label for="cmpcTxt">Compactess</label>
+                                    <input id="cmpcTxt" type="text" value="0" disabled/>
+                                    </li>
+                                    </ul>
+                                     
+                                     <span class="buttonred">NO</span>
+					                 <span class="buttonyellow">FIX</span>
+					                 <span class="buttongreen">YES</span>
+                                    
+                                    
                                      <input id="nextSymbolBtn" type="button" name="nextSymbol" onclick="nextSymbol()" value="Next Symbol"/>
                                      <a href="#" class="close" onclick="javascript:closeVerifySymbols(0)">close</a>
+                                     
                         </div>
                     </div>
              </div>  
@@ -258,6 +316,10 @@ var verifySymbols = function(regionIndex)
               // display strike (orientation)
             var  perimeterContour = filterRegions[regionIndex].perimeterContour ;
             var strike = filterRegions[regionIndex].degrees ;
+            var ecc = filterRegions[regionIndex].eccentricity ;
+            var rnd = filterRegions[regionIndex].roundness ;
+            var compc = filterRegions[regionIndex].compactness ;
+            
             var bbox = filterRegions[regionIndex].getBoundingBox() ;
             strike = Math.abs(strike)
             strike = Math.floor(strike) ;
@@ -363,7 +425,12 @@ var verifySymbols = function(regionIndex)
          
             var strikeEle = document.getElementById("strikeTxt") ;
             strikeEle.value = strike ;
-           
+            var eccEle = document.getElementById("eccTxt") ;
+            eccEle.value = ecc ;
+            var rndEle = document.getElementById("rndTxt") ;
+            rndEle.value = rnd ;
+            var cmpEle = document.getElementById("cmpcTxt") ;
+            cmpEle.value = compc ;
     
             
             
@@ -871,7 +938,8 @@ var InspectCanvas = function(inspectcanvas){
                         var yCtr = moment(inspectCanvas,bbox.left, bbox.top, bbox.width, bbox.height, 0, 1) / m00;
                         var angle = orientation(inspectCanvas,bbox.left, bbox.top, bbox.width, bbox.height ) ;
                         var degrees = angle * 180 / Math.PI ;
-        
+                        var compactness = regionSize / perimSize ;
+                    
         
                         var mapCanvsdPxPtX = lens.offsetLeft - mapCanvas.offsetLeft + +bbox.left + xCtr ; 
                         var mapCanvsdPxPtY = lens.offsetTop - mapCanvas.offsetTop + bbox.top + yCtr ;
@@ -902,7 +970,9 @@ var InspectCanvas = function(inspectcanvas){
                         
                         regions[i].degrees = degrees ;
                         regions[i].angle = angle ;
-                        
+                        regions[i].eccentricity = eccentricity ;
+                        regions[i].roundness = roundness ;
+                        regions[i].compactness = compactness ;
                         if(filterRegions.length == 0)
                         {
                             filterRegions[0] = regions[i] ;
